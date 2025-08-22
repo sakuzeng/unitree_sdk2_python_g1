@@ -1,0 +1,8 @@
+{
+    "python.analysis.extraPaths": [
+        "./unitree_sdk_python"
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
+}
