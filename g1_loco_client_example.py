@@ -1,7 +1,7 @@
 '''
 @Author: sakuzeng1213
 @Date: 2025-08-22 12:13:16
-@LastEditTime: 2025-08-22 18:32:02
+@LastEditTime: 2025-08-26 18:04:38
 @LastEditors: sakuzeng1213
 @FilePath: /unitree_sdk2_python_g1/g1_loco_client_example.py
 @Description: 
@@ -9,14 +9,12 @@
     # 测试启动运动过程
     # damp(1)->stand_up(2)->start(3)->move forward(4)
 '''
-
 import time
 import sys
 from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.idl.default import unitree_go_msg_dds__SportModeState_
+# from unitree_sdk2py.idl.default import unitree_go_msg_dds__SportModeState_
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import SportModeState_
 from unitree_sdk2py.g1.loco.g1_loco_client import LocoClient
-import math
 from dataclasses import dataclass
 
 @dataclass
