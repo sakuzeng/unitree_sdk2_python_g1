@@ -3,3 +3,6 @@ numpy>=1.21
 open3d>=0.16.0
 kiss-icp
 ctypeslib2
+pyrealsense2
+pyside6 
+pyqtgraph~=0.13 

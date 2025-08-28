@@ -38,6 +38,7 @@ option_list = [
     TestOption(name="Lie2StandUp", id=12),     # 躺到站立
     TestOption(name="Squat2StandUp", id=13),   # 蹲下到站立
     TestOption(name="StandUp2Squat", id=14),   # 站立到蹲下
+    TestOption(name="getFsmStatus", id=15),  # 获取FSM状态（ID和Mode）
 ]
 
 class UserInterface:
@@ -129,8 +130,16 @@ if __name__ == "__main__":
             sport_client.Squat2StandUp()
         elif test_option.id == 14:
             sport_client.StandUp2Squat()
+        elif test_option.id == 15:
+            fsm_id = sport_client.GetFsmId()
+            fsm_mode = sport_client.GetFsmMode()
+            balance_mode = sport_client.GetBalanceMode()
+            print(f"Current FSM Status - ID: {fsm_id}, Mode: {fsm_mode}, Balance Mode: {balance_mode}")
+            # 跳过后面的sleep和状态输出，直接continue
+            continue
         time.sleep(1)
-        # 每次动作后输出当前 FSM ID 和 Mode
+        # 每次动作后输出当前 FSM ID、Mode 和 Balance Mode
         fsm_id = sport_client.GetFsmId()
         fsm_mode = sport_client.GetFsmMode()
-        print(f"Current FSM ID: {fsm_id}, FSM Mode: {fsm_mode}")
+        balance_mode = sport_client.GetBalanceMode()
+        print(f"Current FSM ID: {fsm_id}, FSM Mode: {fsm_mode}, Balance Mode: {balance_mode}")

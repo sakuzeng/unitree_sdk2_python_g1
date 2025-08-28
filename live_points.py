@@ -1,8 +1,9 @@
+from __future__ import annotations
 """雷达点云查看器(Livox MID-360)
 该脚本旨在简化对Livox MID-360雷达点云的查看和处理。
 它使用Open3D库实时可视化点云数据，并提供基本的交互功能。
 运行该脚本前，请确保已正确安装Livox SDK2和相关Python依赖包(requirements.txt)。
-验证livox2_python.py中的.so文件名称
+验证livox2_python.py中导入的.so文件名称
 效果：实时显示雷达点云数据，esc退出
 基础流程：
     1. SDK接收UDP数据 → 解析点云
@@ -11,7 +12,7 @@
     4. tick() 渲染循环 → 显示到屏幕
 """
 
-from __future__ import annotations
+
 
 import signal
 import time
