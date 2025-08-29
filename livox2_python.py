@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Wrapper for Livox-SDK **2** (push-mode, no broadcast).
 
 Tested against Livox-SDK2 1.2.x – build it first:
@@ -22,7 +23,7 @@ as ``mid360_config.json`` in this repo.  Pass that path to ``Livox2``.
 修改其中ip为自己的雷达ip(192.168.123.222)
 
 """
-from __future__ import annotations
+
 
 import ctypes as _C
 import json

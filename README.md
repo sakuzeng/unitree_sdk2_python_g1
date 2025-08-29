@@ -3,11 +3,12 @@
 # list
 - 更新readme.md
    - ~~环境配置~~
-- 雷达点云代码(live_points.py, live_slam.py)
+- ~~雷达点云代码(live_points.py, ~~live_slam.py)
    - 测试移动时点云地图的构建
-- arm传感器测试(arm_gui.py)
+- ~~arm传感器测试(arm_gui.py)~~
 - 数据输入流代码
-- 语音对话demo编写
+- ~~语音对话demo编写，asr,tts测试~~
+- g1文档整理、已知代码理解
 
 # 环境配置
 
