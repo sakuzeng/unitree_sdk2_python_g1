@@ -1,9 +1,10 @@
-[submodule "unitree_sdk_python"]
-	path = unitree_sdk_python
-	url = https://github.com/sakuzeng/unitree_sdk2_python.git
 [submodule "librealsense"]
 	path = librealsense
 	url = https://github.com/sakuzeng/librealsense.git
 [submodule "Livox-SDK2"]
 	path = Livox-SDK2
 	url = git@github.com:sakuzeng/Livox-SDK2.git
+
+[submodule "unitree_sdk_python"]
+	path = unitree_sdk_python
+	url = https://github.com/sakuzeng/unitree_sdk2_python.git
