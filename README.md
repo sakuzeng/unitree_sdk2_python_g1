@@ -1,5 +1,6 @@
 # 前提
 基于[unitree_g1_vibes](https://github.com/Sentdex/unitree_g1_vibes/tree/main)进行开发。
+test
 # 环境配置
 - 1. 安装gi
 ```
