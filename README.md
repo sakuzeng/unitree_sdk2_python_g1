@@ -53,10 +53,12 @@
    source ~/.bashrc
    ```
 5. **安装livox-sdk2**
+   ```bash
    git clone https://github.com/Livox-SDK/Livox-SDK2.git
    cd Livox-SDK2 && mkdir build && cd build
    cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF && make -j$(nproc)
-   sudo make install          # installs liblivox_lidar_sdk.so → /usr/local/lib
+   sudo make install          # installs liblivox_lidar_sdk_shared.so → /usr/local/lib
+   ```
 # 代码功能
 - g1_loco_client_example.py:g1使用rpc来进行控制示例
 
