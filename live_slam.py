@@ -344,7 +344,7 @@ class LiveSLAMDemo(_Livox):
             _sdk_kwargs.update(frame_time=_P["frame_time"], frame_packets=_P["frame_packets"])
 
         try:
-            super().__init__("mid360_config.json", host_ip="192.168.123.222", **_sdk_kwargs)  # type: ignore[arg-type]
+            super().__init__("mid360_config.json", host_ip="192.168.123.164", **_sdk_kwargs)  # type: ignore[arg-type]
         except TypeError:
             # legacy SDK1 signature (no args or fewer kwargs)
             super().__init__()

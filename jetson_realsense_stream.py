@@ -11,7 +11,7 @@ your laptop:
 
 Usage (on Jetson)
 -----------------
-python3 jetson_realsense_stream.py --client-ip 192.168.123.222 \
+python3 jetson_realsense_stream.py --client-ip 192.168.123.164 \
         --width 640 --height 480 --fps 30
 python3 jetson_realsense_stream.py --client-ip 192.168.123.124 \
         --width 640 --height 480 --fps 20

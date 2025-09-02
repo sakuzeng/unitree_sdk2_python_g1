@@ -36,7 +36,7 @@
 ### 文件命名约定
 - Python 脚本：`snake_case.py`
 - 配置文件：保持原有格式（如 `MID360_config.json`）
-- 文档文件：`README.md`, `readme.md`
+- 文档文件：`README.md`
 
 ### 项目结构约定
 ```
@@ -52,7 +52,7 @@
 
 ### 机器人控制代码
 - 使用 `unitree_sdk2_python` 进行机器人控制
-- 网络接口参数使用 `enp2s0` 作为默认值，提示用户修改
+- 网络接口参数使用 `enth0` 作为默认值，提示用户修改
 - 高级控制使用 sport_mode 服务
 - 低级控制需要先关闭 sport_mode
 
