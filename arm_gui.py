@@ -26,9 +26,9 @@ import time
 import sys
 import os
 from typing import Dict, List, Tuple
-from collections import deque
+from collections import deque # * 用于存储关节角度的历史数据，支持高效的队列操作
 
-# Qt 相关导入
+# Qt 相关导入,用于构建 GUI。
 try:
     from PySide6 import QtCore, QtWidgets, QtGui
 except ImportError as e:
@@ -37,8 +37,8 @@ except ImportError as e:
     sys.exit(1)
 
 from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_
-
+from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ # *定义机器人低级状态数据的消息类型，包含关节角度等信息。
+# 用于定义 Unitree G1 机器人手臂和腰部关节的索引值
 class G1JointIndex:
     # Left arm
     LeftShoulderPitch = 15
@@ -123,7 +123,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         
         # 主窗口
         self.main_window = QtWidgets.QMainWindow()
-        self.main_window.setWindowTitle("🤖 G-1 Arm Joint Monitor (高灵敏度监控)")
+        self.main_window.setWindowTitle("🤖 G-1 Arm Joint Monitor")
         self.main_window.setGeometry(100, 100, 900, 700)
         
         # 中央控件
@@ -278,10 +278,11 @@ class ArmJointMonitorGUI(QtCore.QObject):
         button_layout.addWidget(self.sensitivity_spinbox)
         
         button_layout.addStretch()
-
+    #-数据获取
     def _setup_unitree(self):
-        """设置 Unitree SDK"""
+        """"""
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowState_)
+        """设置回调函数为 LowStateHandler，并指定更新频率为 10Hz"""
         self.lowstate_subscriber.Init(self.LowStateHandler, 10)
 
     def LowStateHandler(self, msg: LowState_):
@@ -295,6 +296,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         
         if dt > 0:
             for joint_idx, _, _ in self.joint_info:
+                # 从motor_state中提取每个关节的当前角度值
                 current_angle = msg.motor_state[joint_idx].q
                 
                 # 计算变化速度

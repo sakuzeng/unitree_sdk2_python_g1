@@ -332,159 +332,239 @@ class _Viewer:
 
 class LiveSLAMDemo(_Livox):
     def __init__(self):
-        # For SDK2 we need a config path; for SDK1 not.
+        """初始化 SLAM 演示系统"""
         # ------------------------------------------------------------------
-        # Construct underlying Livox driver with preset aggregation settings
+        # 构建底层 Livox 驱动并设置预设聚合参数
         # ------------------------------------------------------------------
 
         _sdk_kwargs = {}
 
-        # Livox-SDK **2** wrapper supports frame_time/packets arguments
+        # Livox-SDK **2** 包装器支持 frame_time/packets 参数
         if _Livox.__name__ == "Livox2":  # type: ignore[attr-defined]
             _sdk_kwargs.update(frame_time=_P["frame_time"], frame_packets=_P["frame_packets"])
 
         try:
             super().__init__("mid360_config.json", host_ip="192.168.123.164", **_sdk_kwargs)  # type: ignore[arg-type]
         except TypeError:
-            # legacy SDK1 signature (no args or fewer kwargs)
+            # 旧版 SDK1 签名（无参数或更少的 kwargs）
             super().__init__()
 
-        # Use preset tuned for Livox FOV / scan pattern.
-        # Build a default configuration for KISS-ICP (API ≥ 1.2)
+        # 使用针对 Livox FOV / 扫描模式调优的预设
+        # 为 KISS-ICP 构建默认配置（API ≥ 1.2）
         try:
             from kiss_icp.config import load_config  # type: ignore
-
             cfg = load_config(config_file=None, max_range=_P["max_range"])
-        except Exception as e:  # pragma: no cover – extremely old wheels
-            print("[KISS-ICP] Could not create config via load_config:", e)
+        except Exception as e:  # pragma: no cover
+            print("[KISS-ICP] 无法通过 load_config 创建配置:", e)
             raise SystemExit(
-                "Your installed kiss-icp wheel is too old – please upgrade: `pip install -U kiss-icp`. "
+                "安装的 kiss-icp 包版本过旧 – 请升级: `pip install -U kiss-icp`. "
             ) from e
 
-        # Apply preset specific tuning – works with both old & new cfg layouts
-        try:
-            cfg.mapping.voxel_size = _P["voxel_size"]
-            cfg.mapping.max_points_per_voxel = 30
-        except AttributeError:
-            pass
-
-        cfg.adaptive_threshold.min_motion_th = _P["min_motion"]
-        cfg.registration.convergence_criterion = _P["conv_criterion"]
-        cfg.registration.max_num_iterations = _P["max_iters"]
-
+        # 应用更稳定的配置参数，使用安全的属性设置
+        self._apply_safe_config(cfg)
+        
         self._slam = KissICP(cfg)
         self._viewer = _Viewer()
 
-        # Down-sample threshold for visualisation
+        # 可视化的下采样阈值
         self._vis_max_points = _P["downsample_limit"]
+
+        # 添加运动检测和帧率控制
+        self._last_frame_time = time.time()
+        self._frame_count = 0
+        self._skip_frames = 0
+        self._last_xyz = None
+        self._initialization_frames = 0
+        self._min_init_frames = 5  # 需要至少5帧来初始化
+
+    def _apply_safe_config(self, cfg):
+        """安全地应用 KISS-ICP 配置参数"""
+        # 映射配置 - 使用更保守的参数
+        try:
+            if hasattr(cfg, 'mapping'):
+                if hasattr(cfg.mapping, 'voxel_size'):
+                    cfg.mapping.voxel_size = max(_P["voxel_size"], 0.2)  # 增加最小体素大小
+                if hasattr(cfg.mapping, 'max_points_per_voxel'):
+                    cfg.mapping.max_points_per_voxel = 15  # 减少每个体素的点数
+        except Exception as e:
+            print(f"[WARNING] 设置映射参数时出错: {e}")
+
+        # 自适应阈值配置
+        try:
+            if hasattr(cfg, 'adaptive_threshold'):
+                if hasattr(cfg.adaptive_threshold, 'min_motion_th'):
+                    cfg.adaptive_threshold.min_motion_th = max(_P["min_motion"], 0.05)  # 更保守的运动阈值
+        except Exception as e:
+            print(f"[WARNING] 设置自适应阈值参数时出错: {e}")
+
+        # 配准配置 - 只设置确实存在的属性
+        try:
+            if hasattr(cfg, 'registration'):
+                if hasattr(cfg.registration, 'convergence_criterion'):
+                    cfg.registration.convergence_criterion = max(_P["conv_criterion"], 1e-4)
+                if hasattr(cfg.registration, 'max_num_iterations'):
+                    cfg.registration.max_num_iterations = min(_P["max_iters"], 50)  # 显著减少迭代次数
+        except Exception as e:
+            print(f"[WARNING] 设置配准参数时出错: {e}")
 
     # ------------------------------------------------------------------
     # Overridden callback – receives each raw frame
     # ------------------------------------------------------------------
 
-    def handle_points(self, xyz: np.ndarray):  # noqa: D401
-        """Process one LiDAR frame.
-
-        Besides forwarding the frame to KISS-ICP we apply a *very* small
-        pre-filter that discards returns coming from the robot itself – more
-        specifically reflections from the G-1’s head that sit roughly at the
-        same height as the MID-360.  Those points are extremely close to the
-        sensor and can deteriorate both the SLAM solution and any downstream
-        occupancy grid.  We therefore remove all returns that
-
-        1. lie within a narrow vertical band around the LiDAR plane, **and**
-        2. are closer than ≈ 3 inches (8 cm) in the horizontal plane.
-
-        The numbers are intentionally conservative so legitimate nearby
-        obstacles (for instance an actual wall that is <10 cm away) are still
-        kept.  If necessary they can be tuned via the two environment
-        variables shown below.
-
-        Environment variables
-        --------------------
-        LIDAR_SELF_FILTER_RADIUS   – horizontal exclusion radius in metres
-                                     (default: 0.08 ≈ 3 in)
-        LIDAR_SELF_FILTER_Z        – half height of the vertical dead-band in
-                                     metres (default: 0.05 ≈ 2 in)
-        """
-
-        import os
-        import numpy as _np
-
+    def handle_points(self, xyz: np.ndarray):
+        """处理单个激光雷达帧，改进错误处理和数值稳定性"""
+        
+        current_time = time.time()
+        self._frame_count += 1
+        
+        # 控制帧率，避免过于频繁的更新
+        if current_time - self._last_frame_time < 0.1:  # 最大 10 Hz
+            return
+            
+        self._last_frame_time = current_time
+        
         # ------------------------------------------------------------------
-        # 1.  Remove reflections from the robot itself (head / mounting)
+        # 1. 移除机器人自身的反射（头部/安装位置）
         # ------------------------------------------------------------------
-
-        # Defaults intentionally generous – covers ≈12-inch radius around the
-        # sensor and ±24 cm in height which should safely encompass the G-1’s
-        # head even when the robot moves or tilts significantly.
         try:
-            r_xy = float(os.environ.get("LIDAR_SELF_FILTER_RADIUS", 0.30))
-            dz = float(os.environ.get("LIDAR_SELF_FILTER_Z", 0.24))
+            r_xy = float(os.environ.get("LIDAR_SELF_FILTER_RADIUS", 0.20))  # 减小过滤半径
+            dz = float(os.environ.get("LIDAR_SELF_FILTER_Z", 0.15))
         except ValueError:
-            r_xy, dz = 0.08, 0.05  # fallback to sane defaults
+            r_xy, dz = 0.20, 0.15  # 更保守的默认值
 
         if xyz.size > 0:
-            # Horizontal distance from sensor centreline (x-y plane)
-            dist_xy = _np.linalg.norm(xyz[:, :2], axis=1)
+            # 水平距离过滤
+            dist_xy = np.linalg.norm(xyz[:, :2], axis=1)
             close = dist_xy < r_xy
 
-            # Vertical proximity to the LiDAR plane (z ≈ 0 in sensor coords)
-            near_plane = _np.abs(xyz[:, 2]) < dz
+            # 垂直接近度过滤
+            near_plane = np.abs(xyz[:, 2]) < dz
 
             mask = ~(close & near_plane)
 
-            # Only allocate new array if we actually filtered anything to
-            # keep the common path (no filtering necessary) fast.
             if mask.sum() != xyz.shape[0]:
                 xyz = xyz[mask]
 
-        # KISS-ICP ≥1.2 expects (points, timestamps).  We don't have per-point
-        # timestamps readily available, so pass a zeros array of shape (N,).
+        if xyz.size == 0:
+            print("[WARNING] 空点云，跳过帧")
+            return
+        
+        # 数据有效性检查
+        if not np.isfinite(xyz).all():
+            print("[WARNING] 点云中包含非有限值，正在清理...")
+            valid_mask = np.isfinite(xyz).all(axis=1)
+            xyz = xyz[valid_mask]
+            if xyz.size == 0:
+                print("[WARNING] 清理后无有效点，跳过帧")
+                return
+        
+        # 检查点数
+        if xyz.shape[0] < 100:  # 提高最小点数要求
+            self._skip_frames += 1
+            if self._skip_frames % 20 == 0:
+                print(f"[WARNING] 点数不足 ({xyz.shape[0]})，已跳过 {self._skip_frames} 帧")
+            return
+            
+        self._skip_frames = 0
+        
+        # 初始化阶段的运动检测
+        if self._initialization_frames < self._min_init_frames:
+            self._initialization_frames += 1
+            print(f"[INFO] 初始化阶段 {self._initialization_frames}/{self._min_init_frames}")
+        else:
+            # 检测运动幅度
+            if self._last_xyz is not None and self._last_xyz.shape[0] > 0:
+                try:
+                    current_center = np.median(xyz, axis=0)  # 使用中位数更稳定
+                    last_center = np.median(self._last_xyz, axis=0)
+                    motion = np.linalg.norm(current_center - last_center)
+                    
+                    if motion < 0.005:  # 运动太小
+                        return
+                except Exception as e:
+                    print(f"[WARNING] 运动检测失败: {e}")
+        
+        # 保存当前帧用于下次比较
+        if xyz.shape[0] < 10000:  # 只保存小点云避免内存问题
+            self._last_xyz = xyz.copy()
+        
+        # SLAM 处理
         try:
-            # Older kiss-icp (<1.3): expects only points
-            self._slam.register_frame(xyz)
-        except TypeError:
-            # Newer kiss-icp (>=1.3): expects (points, twist) where twist is a
-            # per-point 6-vector [ω, v].  Pass a zero-twist to indicate "no
-            # motion" so that Sophus::SO3::exp() does not assert.
-            import numpy as _np
-
-            # Provide synthetic per-point timestamps spanning one scan period
-            period = 1.0 / 20.0  # Mid-360 default 20 Hz
-            ts = _np.linspace(0.0, period, num=xyz.shape[0], dtype=_np.float64)
-            self._slam.register_frame(xyz, ts)
+            # 生成时间戳 - 使用更稳定的方法
+            num_points = xyz.shape[0]
+            period = 0.1  # 10 Hz 等效周期
+            
+            # 简单线性时间戳
+            timestamps = np.linspace(0.0, period, num_points, dtype=np.float64)
+            
+            # 尝试注册帧
+            try:
+                self._slam.register_frame(xyz, timestamps)
+            except TypeError:
+                # 回退到无时间戳的 API
+                self._slam.register_frame(xyz)
+                
+        except Exception as e:
+            print(f"[ERROR] SLAM 注册失败: {e}")
+            return
+        
+        # 获取地图
         try:
-            cloud = self._slam.get_map()
-        except AttributeError:
-            # Newer kiss-icp exposes VoxelHashMap via .local_map
-            cloud = self._slam.local_map.point_cloud()
-        # ------------------------------------------------------------------
-        # Apply mount orientation correction (flip/pitch etc.) to both the
-        # accumulated cloud and the reported pose so that callers always see
-        # an *upright* point cloud where +Z is up and +X points forward.
-        # ------------------------------------------------------------------
+            if hasattr(self._slam, 'get_map'):
+                cloud = self._slam.get_map()
+            elif hasattr(self._slam, 'local_map'):
+                cloud = self._slam.local_map.point_cloud()
+            else:
+                print("[ERROR] 无法获取地图 - 未知的 SLAM API")
+                return
+                
+        except Exception as e:
+            print(f"[ERROR] 获取地图失败: {e}")
+            return
+        
+        # 安全检查云数据
+        if cloud is None or cloud.size == 0:
+            print("[WARNING] 空地图，跳过可视化")
+            return
+        
+        # 应用挂载方向校正
         if _R_MOUNT is not None:
-            # Rotate every point – for row-major xyz we need to post-multiply
-            # by Rᵀ (equivalent to pre-multiplying the *column* vector).
-            cloud = (cloud @ _R_MOUNT[:3, :3].T).astype(cloud.dtype, copy=False)
+            try:
+                cloud = (cloud @ _R_MOUNT[:3, :3].T).astype(cloud.dtype, copy=False)
+            except Exception as e:
+                print(f"[WARNING] 挂载校正失败: {e}")
 
+        # 下采样用于可视化
         if cloud.shape[0] > self._vis_max_points:
-            step = int(cloud.shape[0] / self._vis_max_points) + 1
+            step = max(1, int(cloud.shape[0] / self._vis_max_points))
             cloud = cloud[::step]
 
-        # Current pose (4×4 matrix) – copy to avoid threading issues
-        pose = self._slam.last_pose.copy()  # type: ignore[attr-defined]
-        if _R_MOUNT is not None:
-            pose = _R_MOUNT @ pose
+        # 获取当前位姿
+        try:
+            pose = self._slam.last_pose.copy() if hasattr(self._slam, 'last_pose') else np.eye(4)
+            if _R_MOUNT is not None:
+                pose = _R_MOUNT @ pose
+        except Exception as e:
+            print(f"[WARNING] 获取位姿失败: {e}")
+            pose = np.eye(4)
 
-        self._viewer.push(cloud, pose)
-
-    # ------------------------------------------------------------------
+        # 推送到可视化器
+        try:
+            self._viewer.push(cloud, pose)
+        except Exception as e:
+            print(f"[WARNING] 可视化更新失败: {e}")
 
     def shutdown(self):
-        super().shutdown()
-        self._viewer.close()
+        """安全关闭所有资源"""
+        try:
+            super().shutdown()
+        except Exception as e:
+            print(f"[WARNING] 关闭 Livox 时出错: {e}")
+        
+        try:
+            self._viewer.close()
+        except Exception as e:
+            print(f"[WARNING] 关闭可视化器时出错: {e}")
 
 
 def main():  # pragma: no cover

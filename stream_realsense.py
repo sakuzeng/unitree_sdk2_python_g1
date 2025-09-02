@@ -19,12 +19,6 @@ This file is 100 % self-contained – the only runtime dependencies are:
 
 No additional helper libraries or ROS runtimes are required.
 
-There is *no* hardware connected inside the execution environment that runs
-this script during CI, therefore the *main* clause is guarded so that the
-file can be imported without throwing an exception if no camera is present.
-When you actually run the script on a machine with a RealSense camera
-connected, an OpenCV window will pop up and display the live feed.
-
 Author: OpenAI Codex-CLI helper
 """
 
@@ -32,9 +26,11 @@ from __future__ import annotations
 
 import sys
 import time
+import subprocess
 from typing import Optional
 
 import cv2
+import numpy as np
 
 try:
     import pyrealsense2 as rs  # type: ignore
@@ -49,6 +45,33 @@ except ImportError as exc:  # pragma: no cover – only happens if dependency mi
 # ---------------------------------------------------------------------------
 
 
+def check_device_availability():
+    """检查设备是否被其他进程占用"""
+    try:
+        result = subprocess.run(['lsof', '/dev/video*'], 
+                              capture_output=True, text=True)
+        if result.stdout:
+            print("警告: 检测到摄像头设备被占用:")
+            print(result.stdout)
+            return False
+        return True
+    except Exception:
+        return True  # 如果检查失败，假设设备可用
+
+
+def reset_usb_devices():
+    """重置 USB 摄像头设备"""
+    try:
+        print("正在重置 USB 摄像头设备...")
+        subprocess.run(['sudo', 'modprobe', '-r', 'uvcvideo'], check=False)
+        time.sleep(1)
+        subprocess.run(['sudo', 'modprobe', 'uvcvideo'], check=False)
+        time.sleep(2)
+        print("USB 设备重置完成")
+    except Exception as e:
+        print(f"重置 USB 设备失败: {e}")
+
+
 def colourise_depth(depth_frame: rs.depth_frame) -> cv2.Mat:
     """Converts a depth frame (16-bit, in millimetres) into an 8-bit BGR image.
 
@@ -56,17 +79,22 @@ def colourise_depth(depth_frame: rs.depth_frame) -> cv2.Mat:
     *JET* colour map so that closer objects appear red and farther objects
     blue.
     """
-
-    depth_image = cv2.cvtColor(
-        cv2.convertScaleAbs(depth_frame.get_data(), alpha=0.03), cv2.COLOR_GRAY2BGR
-    )
-    depth_coloured = cv2.applyColorMap(depth_image, cv2.COLORMAP_JET)
+    # 修复：将 RealSense 数据转换为 numpy 数组
+    depth_data = np.asanyarray(depth_frame.get_data())
+    
+    # 转换为 8-bit 灰度图像
+    depth_image = cv2.convertScaleAbs(depth_data, alpha=0.03)
+    
+    # 转换为 BGR 格式
+    depth_image_bgr = cv2.cvtColor(depth_image, cv2.COLOR_GRAY2BGR)
+    
+    # 应用颜色映射
+    depth_coloured = cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
     return depth_coloured
 
 
 def get_first_device(context: rs.context) -> Optional[rs.device]:
     """Return the first RealSense device if any, otherwise *None*."""
-
     devices = context.query_devices()
     if len(devices) == 0:
         return None
@@ -76,6 +104,42 @@ def get_first_device(context: rs.context) -> Optional[rs.device]:
 # ---------------------------------------------------------------------------
 # Main streaming routine
 # ---------------------------------------------------------------------------
+
+
+def run_with_retry(
+    rgb_width: int = 640,
+    rgb_height: int = 480,
+    fps: int = 30,
+    enable_infra: bool = False,
+    enable_imu: bool = False,
+    max_retries: int = 3
+):
+    """带重试机制的运行函数"""
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"尝试启动摄像头 (第 {attempt + 1}/{max_retries} 次)...")
+            
+            # 检查设备可用性
+            if not check_device_availability():
+                print("设备被占用，尝试重置...")
+                reset_usb_devices()
+            
+            run(rgb_width, rgb_height, fps, enable_infra, enable_imu)
+            return  # 成功运行，退出重试循环
+            
+        except RuntimeError as e:
+            if "Device or resource busy" in str(e) or "xioctl" in str(e):
+                print(f"设备忙碌错误: {e}")
+                if attempt < max_retries - 1:
+                    print("等待并重试...")
+                    time.sleep(2)
+                    reset_usb_devices()
+                else:
+                    print("所有重试都失败了")
+                    raise
+            else:
+                raise  # 其他错误直接抛出
 
 
 def run(
@@ -129,7 +193,15 @@ def run(
 
     # Start streaming
     print("Starting pipeline …")
-    profile = pipeline.start(config)
+    try:
+        profile = pipeline.start(config)
+    except RuntimeError as e:
+        if "Device or resource busy" in str(e):
+            raise RuntimeError(f"摄像头设备被占用。请运行以下命令释放设备:\n"
+                             f"sudo pkill -f realsense\n"
+                             f"sudo modprobe -r uvcvideo && sudo modprobe uvcvideo")
+        else:
+            raise
 
     print("Camera intrinsics (colour stream):")
     colour_intr: rs.video_stream_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
@@ -142,6 +214,7 @@ def run(
     last_time = time.perf_counter()
 
     try:
+        print("摄像头流已启动。按 ESC 或 'q' 键退出。")
         while True:
             frames = pipeline.wait_for_frames()
 
@@ -160,7 +233,7 @@ def run(
             depth_frame = temporal_filter.process(depth_frame)
 
             # Convert RealSense frames to numpy arrays
-            colour_image = colour_frame.get_data()  # returns a numpy.ndarray in BGR order
+            colour_image = np.asanyarray(colour_frame.get_data())  # 修复：确保是 numpy 数组
             depth_coloured = colourise_depth(depth_frame)
 
             # Combine side-by-side for display (make sure both are same height)
@@ -186,8 +259,8 @@ def run(
                 ir_left = aligned_frames.get_infrared_frame(1)
                 ir_right = aligned_frames.get_infrared_frame(2)
                 if ir_left and ir_right:
-                    ir_left_img = ir_left.get_data()
-                    ir_right_img = ir_right.get_data()
+                    ir_left_img = np.asanyarray(ir_left.get_data())  # 修复：转换为 numpy 数组
+                    ir_right_img = np.asanyarray(ir_right.get_data())  # 修复：转换为 numpy 数组
                     cv2.imshow("IR-left", ir_left_img)
                     cv2.imshow("IR-right", ir_right_img)
 
@@ -230,16 +303,26 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=int, default=30, help="Frame rate")
     parser.add_argument("--infra", action="store_true", help="Also display the two IR streams")
     parser.add_argument("--imu", action="store_true", help="Print IMU (gyro + accel) readings")
+    parser.add_argument("--no-retry", action="store_true", help="禁用重试机制")
 
     args = parser.parse_args()
 
     try:
-        run(
-            rgb_width=args.width,
-            rgb_height=args.height,
-            fps=args.fps,
-            enable_infra=args.infra,
-            enable_imu=args.imu,
-        )
+        if args.no_retry:
+            run(
+                rgb_width=args.width,
+                rgb_height=args.height,
+                fps=args.fps,
+                enable_infra=args.infra,
+                enable_imu=args.imu,
+            )
+        else:
+            run_with_retry(
+                rgb_width=args.width,
+                rgb_height=args.height,
+                fps=args.fps,
+                enable_infra=args.infra,
+                enable_imu=args.imu,
+            )
     except RuntimeError as err:
         sys.exit(str(err))

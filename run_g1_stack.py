@@ -142,7 +142,7 @@ def _rx_realsense(stop: threading.Event) -> None:  # pragma: no cover – HW req
             p.set_state(Gst.State.NULL)
 
     except Exception as exc:  # pylint: disable=broad-except
-        print("[run_geoff_stack] RealSense receiver disabled:", exc, file=sys.stderr)
+        print("[run_g1_stack] RealSense receiver disabled:", exc, file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -377,7 +377,7 @@ def _compose_canvas() -> "Optional['np.ndarray']":  # type: ignore[name-defined]
 
 def main() -> None:  # noqa: D401
     parser = argparse.ArgumentParser()
-    parser.add_argument("--iface", default="enp68s0f1", help="network interface connected to Unitree G-1")
+    parser.add_argument("--iface", default="enth0", help="network interface connected to Unitree G-1")
     args = parser.parse_args()
 
     stop = threading.Event()
