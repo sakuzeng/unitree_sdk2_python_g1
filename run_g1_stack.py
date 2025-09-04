@@ -74,12 +74,11 @@ _state: Dict[str, Any] = {
 
 
 # ---------------------------------------------------------------------------
-# 1.  RealSense receiver  (GStreamer → numpy) – adapted from
-#     receive_realsense_gst.py but trimmed to only publish the combined image.
+# 1.  RealSense receiver  (OpenCV + UDP → numpy) – 支持两种接收方式
 # ---------------------------------------------------------------------------
 
-
-def _rx_realsense(stop: threading.Event) -> None:  # pragma: no cover – HW req.
+def _rx_realsense_gstreamer(stop: threading.Event) -> None:  # pragma: no cover – HW req.
+    """GStreamer版本的RealSense接收器（原版本）"""
     try:
         import gi  # type: ignore
 
@@ -142,8 +141,145 @@ def _rx_realsense(stop: threading.Event) -> None:  # pragma: no cover – HW req
             p.set_state(Gst.State.NULL)
 
     except Exception as exc:  # pylint: disable=broad-except
-        print("[run_g1_stack] RealSense receiver disabled:", exc, file=sys.stderr)
+        print("[run_g1_stack] GStreamer RealSense receiver disabled:", exc, file=sys.stderr)
 
+
+def _rx_realsense_opencv(stop: threading.Event) -> None:  # pragma: no cover – HW req.
+    """OpenCV版本的RealSense接收器（无需gi依赖）"""
+    try:
+        import numpy as np
+        import cv2
+        import socket
+        import struct
+        from collections import defaultdict
+
+        class VideoReceiver:
+            def __init__(self, rgb_port: int = 5600, depth_port: int = 5602):
+                self.rgb_port = rgb_port
+                self.depth_port = depth_port
+                
+                # 创建UDP套接字
+                self.rgb_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.depth_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                
+                # 绑定端口
+                self.rgb_socket.bind(('', rgb_port))
+                self.depth_socket.bind(('', depth_port))
+                
+                # 设置接收缓冲区和超时
+                self.rgb_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+                self.depth_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+                self.rgb_socket.settimeout(0.1)
+                self.depth_socket.settimeout(0.1)
+                
+                # 帧缓存
+                self.rgb_packets = defaultdict(dict)
+                self.depth_packets = defaultdict(dict)
+                
+                self.latest_rgb = None
+                self.latest_depth = None
+                self.running = True
+
+            def receive_frame(self, socket_obj: socket.socket, packet_dict: dict) -> Optional[np.ndarray]:
+                """接收并重组一个完整帧"""
+                try:
+                    data, addr = socket_obj.recvfrom(65536)
+                    
+                    if len(data) < 12:  # 最小包头大小
+                        return None
+                    
+                    # 解析包头
+                    packet_id, total_packets, data_len = struct.unpack('!III', data[:12])
+                    packet_data = data[12:12+data_len]
+                    
+                    # 存储包数据
+                    frame_id = int(time.time() * 1000) // 100  # 简单的帧ID
+                    if frame_id not in packet_dict:
+                        packet_dict[frame_id] = {}
+                    
+                    packet_dict[frame_id][packet_id] = packet_data
+                    
+                    # 检查是否收到完整帧
+                    if len(packet_dict[frame_id]) == total_packets:
+                        # 重组帧
+                        frame_data = b''.join(packet_dict[frame_id][i] 
+                                            for i in range(total_packets))
+                        
+                        # 解码图像
+                        nparr = np.frombuffer(frame_data, np.uint8)
+                        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                        
+                        # 清理旧数据
+                        del packet_dict[frame_id]
+                        
+                        # 清理过期帧
+                        current_time = int(time.time() * 1000) // 100
+                        expired_frames = [fid for fid in packet_dict.keys() 
+                                        if current_time - fid > 10]
+                        for fid in expired_frames:
+                            del packet_dict[fid]
+                        
+                        return frame
+                    
+                except socket.timeout:
+                    pass  # 正常超时，继续循环
+                except Exception as e:
+                    if self.running:
+                        print(f"接收包错误: {e}")
+                
+                return None
+
+            def close(self):
+                """关闭接收器"""
+                self.running = False
+                self.rgb_socket.close()
+                self.depth_socket.close()
+
+        receiver = VideoReceiver()
+        last = time.perf_counter()
+
+        while not stop.is_set():
+            # 尝试接收RGB和深度帧
+            rgb_frame = receiver.receive_frame(receiver.rgb_socket, receiver.rgb_packets)
+            depth_frame = receiver.receive_frame(receiver.depth_socket, receiver.depth_packets)
+
+            if rgb_frame is not None:
+                receiver.latest_rgb = rgb_frame
+            if depth_frame is not None:
+                receiver.latest_depth = depth_frame
+
+            # 如果两个帧都可用，合成显示
+            if receiver.latest_rgb is not None and receiver.latest_depth is not None:
+                combo = cv2.hconcat([receiver.latest_rgb, receiver.latest_depth])
+
+                fps = 1.0 / (time.perf_counter() - last)
+                last = time.perf_counter()
+                cv2.putText(combo, f"RGB+Depth  {fps:5.1f} FPS", (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+                with _state_lock:
+                    _state["rgbd"] = combo
+
+            time.sleep(0.01)
+
+        receiver.close()
+
+    except Exception as exc:  # pylint: disable=broad-except
+        print("[run_g1_stack] OpenCV RealSense receiver disabled:", exc, file=sys.stderr)
+
+
+def _rx_realsense(stop: threading.Event) -> None:  # pragma: no cover – HW req.
+    """智能选择RealSense接收器版本"""
+    try:
+        # 优先尝试GStreamer版本
+        import gi
+        gi.require_version("Gst", "1.0")
+        print("[run_g1_stack] 使用GStreamer版本的RealSense接收器")
+        _rx_realsense_gstreamer(stop)
+    except ImportError:
+        # 回退到OpenCV版本
+        print("[run_g1_stack] GStreamer不可用，使用OpenCV版本的RealSense接收器")
+        _rx_realsense_opencv(stop)
 
 # ---------------------------------------------------------------------------
 # 2.  Live SLAM  →  2-D bird-eye preview (numpy 480×480)

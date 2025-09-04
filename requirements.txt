@@ -5,4 +5,6 @@ kiss-icp
 ctypeslib2
 pyrealsense2
 pyside6 
-pyqtgraph~=0.13 
+pyqtgraph~=0.13
+webrtcvad 
+noisereduce

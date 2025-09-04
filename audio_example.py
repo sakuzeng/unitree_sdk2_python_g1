@@ -5,11 +5,16 @@ import socket
 import struct
 import threading
 import netifaces
-import wave
 import os
 import json
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscriber
 from unitree_sdk2py.g1.audio.g1_audio_client import AudioClient
+import webrtcvad
+import numpy as np
+from collections import deque
+from funasr import AutoModel
+from funasr.utils.postprocess_utils import rich_transcription_postprocess
+import noisereduce as nr
 
 # 导入正确的ASR消息类型 - 根据C++代码，应该是String_类型
 from unitree_sdk2py.idl.std_msgs.msg.dds_._String_ import String_
@@ -22,6 +27,25 @@ MULTICAST_PORT = 5555  # 组播端口
 # 全局变量
 audio_receiver_running = False
 audio_receiver_thread = None
+
+# 初始化语音识别模型
+model_dir = "FunAudioLLM/SenseVoiceSmall"
+asr_model = AutoModel(
+    model=model_dir,
+    vad_model="fsmn-vad",
+    vad_kwargs={"max_single_segment_time": 30000},
+    hub="hf",
+    device="cpu",
+)
+
+# 初始化 WebRTC VAD
+vad = webrtcvad.Vad()
+vad.set_mode(3)  # 设置 VAD 模式，0-4，数字越大越敏感
+
+# 缓冲区和状态
+audio_buffer = deque(maxlen=16000 * 5)  # 缓存最多 5 秒的音频数据
+is_speaking = False
+silence_start_time = None
 
 def asr_handler(msg):
     """ASR结果处理回调函数"""
@@ -62,94 +86,93 @@ def get_local_ip_for_multicast():
             continue
     return None
 
-def save_pcm_to_wav(pcm_file, wav_file, channels=1, sample_width=2, frame_rate=16000):
+def apply_noise_suppression(audio_data, sample_rate=16000):
     """
-    将 PCM 数据转换为 WAV 格式并保存
-
+    对音频数据应用 noisereduce 降噪处理
     Args:
-        pcm_file (str): 原始 PCM 文件路径
-        wav_file (str): 输出 WAV 文件路径
-        channels (int): 声道数，默认单声道
-        sample_width (int): 采样宽度（字节），默认 2 字节（16 位）
-        frame_rate (int): 采样率，默认 16000 Hz
+        audio_data (bytes): 原始音频数据
+        sample_rate (int): 采样率，默认 16kHz
+    Returns:
+        bytes: 降噪后的音频数据
     """
-    try:
-        with open(pcm_file, 'rb') as pcm_f:
-            pcm_data = pcm_f.read()
-        
-        with wave.open(wav_file, 'wb') as wav_f:
-            wav_f.setnchannels(channels)
-            wav_f.setsampwidth(sample_width)
-            wav_f.setframerate(frame_rate)
-            wav_f.writeframes(pcm_data)
-        
-        print(f"PCM 数据已成功转换为 WAV 格式并保存到 {wav_file}")
-    except Exception as e:
-        print(f"PCM 转换为 WAV 时出错: {e}")
+    # 将音频数据转换为 numpy 数组
+    audio_np = np.frombuffer(audio_data, dtype=np.int16)
+
+    # 假设前 1 秒为噪声样本
+    noise_sample = audio_np[:sample_rate]
+
+    # 使用 noisereduce 进行降噪
+    denoised_audio = nr.reduce_noise(y=audio_np, y_noise=noise_sample, sr=sample_rate)
+
+    # 将降噪后的音频转换回 bytes
+    return denoised_audio.astype(np.int16).tobytes()
 
 def audio_receiver(interface_name):
     """音频数据接收线程"""
     global audio_receiver_running
-    
+
     try:
         # 创建UDP套接字
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
+
         # 绑定到组播端口
         sock.bind(('', MULTICAST_PORT))
-        
+
         # 获取本地IP地址（192.168.123.164）
         local_ip = get_local_ip_for_multicast()
         if local_ip is None:
             print("无法找到192.168.123.x网段的网络接口")
             return
-        
+
         print(f"本地IP地址: {local_ip}")
-        
+
         # 加入组播组 - 使用正确的本地接口
-        mreq = struct.pack("4s4s", 
-                          socket.inet_aton(MULTICAST_GROUP), 
-                          socket.inet_aton(local_ip))
+        mreq = struct.pack("4s4s",
+                           socket.inet_aton(MULTICAST_GROUP),
+                           socket.inet_aton(local_ip))
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        
+
         # 设置接收缓冲区大小
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-        
+
         # 设置超时
         sock.settimeout(1.0)
-        
+
         print(f"音频接收器已启动，监听 {MULTICAST_GROUP}:{MULTICAST_PORT}")
         print("音频格式: 单通道/16K采样率/16bit")
-        
+
         audio_data_count = 0
         total_bytes = 0
-        
+
         # 打开文件以追加模式保存音频数据
-        pcm_file_path = "data/received_audio.raw"
+        pcm_file_path = "data/received_audio_denoised.raw"
         os.makedirs(os.path.dirname(pcm_file_path), exist_ok=True)  # 确保目录存在
-        
+
         with open(pcm_file_path, "ab") as audio_file:
             while audio_receiver_running:
                 try:
                     data, addr = sock.recvfrom(2048)  # 接收音频数据
                     audio_data_count += 1
                     total_bytes += len(data)
-                    
-                    # 保存音频数据到文件
-                    audio_file.write(data)
-                    
+
+                    # 对音频数据进行降噪处理
+                    denoised_data = apply_noise_suppression(data)
+
+                    # 保存降噪后的音频数据到文件
+                    audio_file.write(denoised_data)
+
                     # 每收到50个数据包打印一次统计信息
                     if audio_data_count % 50 == 0:
                         print(f"已接收音频数据包: {audio_data_count}, 当前包大小: {len(data)} 字节, 总计: {total_bytes} 字节")
-                    
+
                 except socket.timeout:
                     continue  # 超时继续循环
                 except Exception as e:
                     if audio_receiver_running:
                         print(f"音频接收错误: {e}")
                     break
-                
+
     except Exception as e:
         print(f"音频接收器初始化失败: {e}")
     finally:
@@ -158,10 +181,6 @@ def audio_receiver(interface_name):
         except:
             pass
         print("音频接收器已关闭")
-        
-        # 转换 PCM 数据为 WAV 格式
-        wav_file_path = "received_audio.wav"
-        save_pcm_to_wav(pcm_file_path, wav_file_path)
 
 def signal_handler(signum, frame):
     """信号处理函数"""
@@ -171,6 +190,67 @@ def signal_handler(signum, frame):
     if audio_receiver_thread and audio_receiver_thread.is_alive():
         audio_receiver_thread.join(timeout=2)
     sys.exit(0)
+
+def process_audio_stream(audio_data, sample_rate=16000):
+    """
+    处理音频流，检测语音活动并调用语音识别
+    Args:
+        audio_data (bytes): 接收到的音频数据
+        sample_rate (int): 采样率，默认 16kHz
+    """
+    global is_speaking, silence_start_time
+
+    # 将音频数据分割为 10ms 的帧
+    frame_duration = 10  # 每帧时长 10ms
+    frame_size = int(sample_rate * frame_duration / 1000 * 2)  # 每帧字节数
+    frames = [audio_data[i:i + frame_size] for i in range(0, len(audio_data), frame_size)]
+
+    for frame in frames:
+        if len(frame) < frame_size:
+            continue
+
+        # 判断当前帧是否为语音
+        is_speech = vad.is_speech(frame, sample_rate)
+
+        if is_speech:
+            # 如果检测到语音，加入缓冲区
+            audio_buffer.extend(np.frombuffer(frame, dtype=np.int16))
+            is_speaking = True
+            silence_start_time = None
+        else:
+            # 如果检测到静音
+            if is_speaking:
+                if silence_start_time is None:
+                    # 记录静音开始时间
+                    silence_start_time = time.time()
+                elif time.time() - silence_start_time > 3.0:  # 静音超过 1 秒
+                    # 停止说话，调用语音识别
+                    is_speaking = False
+                    silence_start_time = None
+                    recognize_speech()
+
+def recognize_speech():
+    """
+    调用语音识别模型处理缓冲区中的音频数据
+    """
+    global audio_buffer
+
+    # 将缓冲区中的音频数据转换为 numpy 数组
+    audio_np = np.array(audio_buffer, dtype=np.int16).astype(np.float32) / 32768.0
+    audio_buffer.clear()  # 清空缓冲区
+
+    # 调用语音识别模型
+    res = asr_model.generate(
+        input=audio_np,
+        language="auto",
+        use_itn=True,
+        batch_size_s=60,
+        merge_vad=True,
+        merge_length_s=15,
+        sampling_rate=16000,
+    )
+    text = rich_transcription_postprocess(res[0]["text"])
+    print(f"识别结果: {text}")
 
 def main():
     global audio_receiver_running, audio_receiver_thread
@@ -195,17 +275,8 @@ def main():
     audio_client.Init()
     
     print("=== G1 音频功能测试开始 ===")
-    
-    # # ASR消息订阅 - 使用正确的String_类型
-    # print("初始化ASR消息订阅...")
-    # try:
-    #     subscriber = ChannelSubscriber(AUDIO_SUBSCRIBE_TOPIC, String_)
-    #     subscriber.Init(asr_handler)
-    #     print("ASR订阅初始化成功")
-    # except Exception as e:
-    #     print(f"ASR订阅初始化失败: {e}")
-    
-    # 1. 音量控制测试
+        
+    # # 1. 音量控制测试
     # print("\n1. 音量控制测试")
     # code, volume = audio_client.GetVolume()
     # if code == 0:
@@ -255,27 +326,26 @@ def main():
     #         print(f"LED控制失败，错误码: {code}")
     #     time.sleep(1)
     
-    # 4. ASR测试
-    print("\n4. ASR语音识别测试")
-    print("初始化ASR消息订阅...")
-    try:
-        subscriber = ChannelSubscriber(AUDIO_SUBSCRIBE_TOPIC, String_)
-        subscriber.Init(asr_handler)
-        print("ASR订阅初始化成功")
-    except Exception as e:
-        print(f"ASR订阅初始化失败: {e}")
+    # # 4. ASR测试
+    # print("\n4. ASR语音识别测试")
+    # print("初始化ASR消息订阅...")
+    # try:
+    #     subscriber = ChannelSubscriber(AUDIO_SUBSCRIBE_TOPIC, String_)
+    #     subscriber.Init(asr_handler)
+    #     print("ASR订阅初始化成功")
+    # except Exception as e:
+    #     print(f"ASR订阅初始化失败: {e}")
 
-    print("ASR系统已启动，请对着机器人说话...")
-    print("程序将持续运行，按Ctrl+C退出")
+    # print("ASR系统已启动，请对着机器人说话...")
+    # print("程序将持续运行，按Ctrl+C退出")
 
-    # # 5. 启动音频数据接收器
-    # print("\n5. 启动音频数据接收器")
-    # print("请使用APP或遥控器将机器人切换到唤醒模式以开启麦克风")
-    # audio_receiver_running = True
-    # audio_receiver_thread = threading.Thread(target=audio_receiver, args=(interface_name,), daemon=True)
-    # audio_receiver_thread.start()
+    # 5. 启动音频数据接收器
+    print("\n5. 启动音频数据接收器")
+    print("请使用APP或遥控器将机器人切换到唤醒模式以开启麦克风")
+    audio_receiver_running = True
+    audio_receiver_thread = threading.Thread(target=audio_receiver, args=(interface_name,), daemon=True)
+    audio_receiver_thread.start()
 
-    # print("\n=== 音频API测试完成，开始ASR监听和音频数据接收... ===")
 
     try:
         # 主循环，等待ASR消息和音频数据
