@@ -218,13 +218,12 @@ def main():
     print("G-1 机器人手臂关节监控器 (HUD 版本)")
     print("正在启动终端界面...")
     
-    if len(sys.argv) < 2:
-        print(f"Usage: python3 {sys.argv[0]} <network_interface>")
-        print("Example: python3 arm_gui_hud.py eth0")
-        sys.exit(-1)
+    # 设置默认网口参数为 eth0
+    network_interface = sys.argv[1] if len(sys.argv) > 1 else "eth0"
+    print(f"使用网络接口: {network_interface}")
     
     # 初始化 DDS 通道工厂
-    ChannelFactoryInitialize(0, sys.argv[1])
+    ChannelFactoryInitialize(0, network_interface)
     
     # 创建并运行监控器
     try:

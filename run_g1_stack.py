@@ -33,6 +33,7 @@ import argparse
 import sys
 import threading
 import time
+import subprocess
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
@@ -48,13 +49,62 @@ _state: Dict[str, Any] = {
 }
 
 # ---------------------------------------------------------------------------
-# 1. RealSense 接收器 (支持 GStreamer 和 OpenCV)
+# 1. RealSense 接收器 (支持本地设备)
 # ---------------------------------------------------------------------------
+
+def _check_device_availability() -> bool:
+    """
+    检查 RealSense 设备是否被其他进程占用。
+
+    Returns:
+        bool: 如果设备可用，返回 True；否则返回 False。
+    """
+    try:
+        result = subprocess.run(['lsof', '/dev/video*'], capture_output=True, text=True)
+        if result.stdout:
+            print("[run_g1_stack] 警告: 检测到摄像头设备被占用:")
+            print(result.stdout)
+            return False
+        return True
+    except Exception:
+        return True  # 如果检查失败，假设设备可用
+
+
+def _reset_usb_devices() -> None:
+    """
+    重置 USB 摄像头设备。
+    """
+    try:
+        print("[run_g1_stack] 正在重置 USB 摄像头设备...")
+        subprocess.run(['sudo', 'modprobe', '-r', 'uvcvideo'], check=False)
+        time.sleep(1)
+        subprocess.run(['sudo', 'modprobe', 'uvcvideo'], check=False)
+        time.sleep(2)
+        print("[run_g1_stack] USB 设备重置完成")
+    except Exception as e:
+        print(f"[run_g1_stack] 重置 USB 设备失败: {e}")
+
+
+def _get_first_device(context) -> Optional[Any]:
+    """
+    返回第一个 RealSense 设备，如果没有设备则返回 None。
+
+    Args:
+        context: RealSense 上下文。
+
+    Returns:
+        Optional[Any]: 第一个 RealSense 设备。
+    """
+    devices = context.query_devices()
+    if len(devices) == 0:
+        return None
+    return devices[0]
+
 
 def _rx_realsense_local(stop: threading.Event) -> None:
     """
     直接从本地 RealSense 设备捕获 RGB 和深度图像。
-    参考自 stream_realsense.py。
+    参考自 stream_realsense.py，包含重试机制和设备检查。
 
     Args:
         stop (threading.Event): 用于控制线程停止的事件。
@@ -73,45 +123,102 @@ def _rx_realsense_local(stop: threading.Event) -> None:
             depth_image_bgr = cv2.cvtColor(depth_image, cv2.COLOR_GRAY2BGR)
             return cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
 
-        # --- 初始化 RealSense ---
-        pipeline = rs.pipeline()
-        config = rs.config()
-        config.enable_stream(rs.stream.depth, WIDTH, HEIGHT, rs.format.z16, FPS)
-        config.enable_stream(rs.stream.color, WIDTH, HEIGHT, rs.format.bgr8, FPS)
+        # --- 设备检查和重试机制 ---
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"[run_g1_stack] 尝试启动 RealSense (第 {attempt + 1}/{max_retries} 次)...")
+                
+                if not _check_device_availability():
+                    print("[run_g1_stack] 设备被占用，尝试重置...")
+                    _reset_usb_devices()
 
-        align_to = rs.stream.color
-        align = rs.align(align_to)
+                # --- 检查设备连接 ---
+                ctx = rs.context()
+                device = _get_first_device(ctx)
 
-        print("[run_g1_stack] 正在启动 RealSense 管道...")
-        pipeline.start(config)
-        print("[run_g1_stack] RealSense 管道已启动。")
+                if device is None:
+                    raise RuntimeError("未找到 RealSense 设备")
 
+                print(f"[run_g1_stack] 找到设备: {device.get_info(rs.camera_info.name)}")
+                print(f"[run_g1_stack] 序列号: {device.get_info(rs.camera_info.serial_number)}")
+                print(f"[run_g1_stack] 固件版本: {device.get_info(rs.camera_info.firmware_version)}")
+
+                # --- 初始化 RealSense ---
+                pipeline = rs.pipeline(ctx)
+                config = rs.config()
+                config.enable_stream(rs.stream.depth, WIDTH, HEIGHT, rs.format.z16, FPS)
+                config.enable_stream(rs.stream.color, WIDTH, HEIGHT, rs.format.bgr8, FPS)
+
+                # 应用深度后处理滤波器
+                spatial_filter = rs.spatial_filter()  # 边缘保持平滑
+                temporal_filter = rs.temporal_filter()  # 时间降噪
+
+                align_to = rs.stream.color
+                align = rs.align(align_to)
+
+                print("[run_g1_stack] 正在启动 RealSense 管道...")
+                profile = pipeline.start(config)
+                print("[run_g1_stack] RealSense 管道已启动。")
+
+                # 获取相机内参
+                colour_intr = profile.get_stream(rs.stream.color).as_video_stream_profile()
+                intr = colour_intr.get_intrinsics()
+                print(f"[run_g1_stack] 相机内参: {intr.width}×{intr.height}, fx={intr.fx:.1f}, fy={intr.fy:.1f}")
+
+                break  # 成功初始化，跳出重试循环
+
+            except RuntimeError as e:
+                if "Device or resource busy" in str(e) or "xioctl" in str(e):
+                    print(f"[run_g1_stack] 设备忙碌错误: {e}")
+                    if attempt < max_retries - 1:
+                        print("[run_g1_stack] 等待并重试...")
+                        time.sleep(2)
+                        _reset_usb_devices()
+                    else:
+                        print("[run_g1_stack] 所有重试都失败了")
+                        return
+                else:
+                    print(f"[run_g1_stack] RealSense 初始化失败: {e}")
+                    return
+
+        # --- 主循环 ---
         last = time.perf_counter()
 
         while not stop.is_set():
-            frames = pipeline.wait_for_frames()
-            aligned_frames = align.process(frames)
+            try:
+                frames = pipeline.wait_for_frames()
+                aligned_frames = align.process(frames)
 
-            depth_frame: rs.depth_frame = aligned_frames.get_depth_frame()
-            color_frame: rs.video_frame = aligned_frames.get_color_frame()
+                depth_frame: rs.depth_frame = aligned_frames.get_depth_frame()
+                color_frame: rs.video_frame = aligned_frames.get_color_frame()
 
-            if not depth_frame or not color_frame:
+                if not depth_frame or not color_frame:
+                    time.sleep(0.01)
+                    continue
+
+                # 应用后处理滤波器
+                depth_frame = spatial_filter.process(depth_frame)
+                depth_frame = temporal_filter.process(depth_frame)
+
+                # --- 转换图像 ---
+                color_image = np.asanyarray(color_frame.get_data())
+                depth_colored = colourise_depth(depth_frame)
+
+                # --- 合成并更新状态 ---
+                combo = cv2.hconcat([color_image, depth_colored])
+
+                fps = 1.0 / (time.perf_counter() - last)
+                last = time.perf_counter()
+                cv2.putText(combo, f"RGB+Depth  {fps:5.1f} FPS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+                with _state_lock:
+                    _state["rgbd"] = combo
+
+            except Exception as e:
+                print(f"[run_g1_stack] 帧处理错误: {e}")
                 time.sleep(0.01)
                 continue
-
-            # --- 转换图像 ---
-            color_image = np.asanyarray(color_frame.get_data())
-            depth_colored = colourise_depth(depth_frame)
-
-            # --- 合成并更新状态 ---
-            combo = cv2.hconcat([color_image, depth_colored])
-
-            fps = 1.0 / (time.perf_counter() - last)
-            last = time.perf_counter()
-            cv2.putText(combo, f"RGB+Depth  {fps:5.1f} FPS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-            with _state_lock:
-                _state["rgbd"] = combo
 
         # --- 清理 ---
         print("[run_g1_stack] 正在停止 RealSense 管道...")
@@ -326,14 +433,12 @@ def _rx_realsense_opencv(stop: threading.Event) -> None:
 
 def _rx_realsense(stop: threading.Event) -> None:
     """
-    选择 RealSense 接收器的实现 (优先使用 OpenCV)。
+    选择 RealSense 接收器的实现 (优先使用本地设备)。
 
     Args:
         stop (threading.Event): 用于控制线程停止的事件。
     """
-    print("[run_g1_stack] 强制使用 OpenCV 版本的 RealSense 接收器")
-    _rx_realsense_opencv(stop)
-    print("[run_g1_stack] 使用本地 RealSense 接收器。")
+    print("[run_g1_stack] 使用本地 RealSense 接收器")
     _rx_realsense_local(stop)
 
 # ---------------------------------------------------------------------------
@@ -410,7 +515,7 @@ def _monkey_patch_slam_viewer() -> None:
         _ls._Viewer = _MiniViewer  # type: ignore[attr-defined]
 
     except Exception as exc:  # pylint: disable=broad-except
-        print("[run_geoff_stack] SLAM viewer patch failed:", exc, file=sys.stderr)
+        print("[run_g1_stack] SLAM viewer patch failed:", exc, file=sys.stderr)
 
 
 def _run_slam(stop: threading.Event) -> None:
@@ -436,7 +541,7 @@ def _run_slam(stop: threading.Event) -> None:
         demo.shutdown()
 
     except Exception as exc:  # pylint: disable=broad-except
-        print("[run_geoff_stack] SLAM disabled:", exc, file=sys.stderr)
+        print("[run_g1_stack] SLAM disabled:", exc, file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -533,7 +638,7 @@ def _keyboard_thread(stop: threading.Event, iface: str):
             time.sleep(0.005)
 
     except Exception as exc:  # pylint: disable=broad-except
-        print("[run_geoff_stack] Keyboard / G-1 control disabled:", exc, file=sys.stderr)
+        print("[run_g1_stack] Keyboard / G-1 control disabled:", exc, file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -612,7 +717,7 @@ def main() -> None:
                 time.sleep(0.05)
                 continue
 
-            cv2.imshow("Geoff-Stack", canvas)
+            cv2.imshow("G1-Stack", canvas)
             key = cv2.waitKey(1) & 0xFF
             if key in (27, ord("q")):
                 stop.set()

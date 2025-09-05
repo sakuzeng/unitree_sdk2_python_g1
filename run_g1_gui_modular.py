@@ -15,6 +15,7 @@ Unitree G1 GUI 控制器 - 模块化版本
 
 import argparse
 import sys
+import logging
 from pathlib import Path
 
 # 确保 gui 包可以导入
@@ -79,8 +80,12 @@ def main():
     """主入口点。"""
     args = parse_args()
 
-    # 设置日志记录
-    setup_logging(level=args.log_level)
+    # 设置日志记录 - 不传递 level 参数，而是在设置后调整级别
+    logger = setup_logging()
+    
+    # 根据命令行参数设置日志级别
+    log_level = getattr(logging, args.log_level.upper())
+    logging.getLogger().setLevel(log_level)
 
     print(f"[run_g1_gui] 启动 Unitree G1 GUI 控制器 (模块化版本)")
     print(f"[run_g1_gui] 网络接口: {args.network_interface}")

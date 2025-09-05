@@ -314,10 +314,10 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]
 		"""初始化手臂控制。"""
 		self._arm_pub = None  # type: ignore[assignment]
 		try:
-			from unitree_sdk2_python.core.channel import ChannelPublisher
-			from unitree_sdk2_python.idl.unitree_hg.msg.dds_ import LowCmd_
-			from unitree_sdk2_python.idl.default import unitree_hg_msg_dds__LowCmd_
-			from unitree_sdk2_python.utils.crc import CRC
+			from unitree_sdk2py.core.channel import ChannelPublisher
+			from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_
+			from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
+			from unitree_sdk2py.utils.crc import CRC
 
 			# 关节索引定义
 			_WAIST_YAW_IDX = 12
@@ -401,11 +401,11 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]
 	def _init_lowstate_subscription(self):
 		"""初始化 LowState 订阅。"""
 		def _init_ls_sub():
-			from unitree_sdk2_python.core.channel import ChannelSubscriber
+			from unitree_sdk2py.core.channel import ChannelSubscriber
 
 			_candidates = [
-				"unitree_sdk2_python.idl.unitree_hg.msg.dds_.LowState_",
-				"unitree_sdk2_python.idl.unitree_go.msg.dds_.LowState_",
+				"unitree_sdk2py.idl.unitree_hg.msg.dds_.LowState_",
+				"unitree_sdk2py.idl.unitree_go.msg.dds_.LowState_",
 			]
 
 			for dotted in _candidates:
@@ -466,7 +466,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]
 		"""初始化手部控制。"""
 		self._dex3 = None
 		try:
-			from unitree_sdk2_python.dex3 import Dex3Client
+			from unitree_sdk2py.dex3 import Dex3Client
 			import csv
 			from pathlib import Path
 

@@ -69,6 +69,7 @@ class _Viewer:
         """
         self._vis = o3d.visualization.Visualizer()
         self._vis.create_window(window_name="Livox – live point-cloud", width=1280, height=720)
+        self._is_alive = True  # 添加窗口状态标志
 
         # 使用环形缓冲区合并最近的 N 帧点云，以减少稀疏扫描带来的闪烁感，
         # 形成一个更稳定、更密集的点云视图。
@@ -109,6 +110,9 @@ class _Viewer:
         Returns:
             bool: 如果可视化窗口仍然存活，返回 True；否则返回 False。
         """
+        if not self._is_alive:
+            return False  # 窗口已关闭，返回 False 结束主循环
+
         if self._frames:
             # 合并所有帧并更新点云几何体
             merged = np.concatenate(self._frames, axis=0)
@@ -122,6 +126,11 @@ class _Viewer:
         # 处理窗口事件（如关闭、键盘输入）并更新渲染器。
         alive = self._vis.poll_events()
         self._vis.update_renderer()
+
+        # 检查窗口是否关闭
+        if not alive:
+            self._is_alive = False
+
         return alive
 
     def close(self):
@@ -142,7 +151,7 @@ class LiveViewer(_Livox):
         if _SDK2:
             # 注意: 此处 IP 地址可能需要根据实际情况修改。
             # 默认主机 IP 为 192.168.123.164，此处示例为 222。
-            super().__init__("mid360_config.json", host_ip="192.168.123.222")
+            super().__init__("mid360_config.json", host_ip="192.168.123.164")
         else:
             super().__init__()  # SDK1 无需参数
 
