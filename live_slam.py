@@ -311,6 +311,31 @@ def main():
         while not stop and demo._viewer.tick():
             time.sleep(0.01)
     finally:
+        # --- 添加保存地图的代码 ---
+        print("正在保存地图...")
+        final_map_points = demo._slam.get_map()
+        if final_map_points.size > 0:
+            # 应用最终的挂载校正
+            if _R_MOUNT is not None:
+                final_map_points = (final_map_points @ _R_MOUNT[:3, :3].T).astype(final_map_points.dtype, copy=False)
+            
+            # 创建 Open3D 点云对象并保存
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(final_map_points)
+            
+            # 对地图进行体素下采样，减小文件大小并均匀化点云密度
+            voxel_size = demo._slam.config.mapping.voxel_size
+            pcd_downsampled = pcd.voxel_down_sample(voxel_size)
+            
+            output_dir = "data"
+            os.makedirs(output_dir, exist_ok=True)
+            map_filename = os.path.join(output_dir, "slam_map.pcd")
+            o3d.io.write_point_cloud(map_filename, pcd_downsampled)
+            print(f"地图已保存到 {map_filename} (共 {len(pcd_downsampled.points)} 个点)")
+        else:
+            print("没有可保存的地图数据。")
+        # --- 保存代码结束 ---
+        
         demo.shutdown()
 
 

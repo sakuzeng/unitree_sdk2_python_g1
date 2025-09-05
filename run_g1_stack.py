@@ -51,6 +51,78 @@ _state: Dict[str, Any] = {
 # 1. RealSense 接收器 (支持 GStreamer 和 OpenCV)
 # ---------------------------------------------------------------------------
 
+def _rx_realsense_local(stop: threading.Event) -> None:
+    """
+    直接从本地 RealSense 设备捕获 RGB 和深度图像。
+    参考自 stream_realsense.py。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+    """
+    try:
+        import pyrealsense2 as rs
+        import numpy as np
+        import cv2
+
+        WIDTH, HEIGHT, FPS = 640, 480, 30
+
+        def colourise_depth(depth_frame: rs.depth_frame) -> cv2.Mat:
+            """将深度帧 (16-bit) 转换为伪彩色 8-bit BGR 图像。"""
+            depth_data = np.asanyarray(depth_frame.get_data())
+            depth_image = cv2.convertScaleAbs(depth_data, alpha=0.03)
+            depth_image_bgr = cv2.cvtColor(depth_image, cv2.COLOR_GRAY2BGR)
+            return cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
+
+        # --- 初始化 RealSense ---
+        pipeline = rs.pipeline()
+        config = rs.config()
+        config.enable_stream(rs.stream.depth, WIDTH, HEIGHT, rs.format.z16, FPS)
+        config.enable_stream(rs.stream.color, WIDTH, HEIGHT, rs.format.bgr8, FPS)
+
+        align_to = rs.stream.color
+        align = rs.align(align_to)
+
+        print("[run_g1_stack] 正在启动 RealSense 管道...")
+        pipeline.start(config)
+        print("[run_g1_stack] RealSense 管道已启动。")
+
+        last = time.perf_counter()
+
+        while not stop.is_set():
+            frames = pipeline.wait_for_frames()
+            aligned_frames = align.process(frames)
+
+            depth_frame: rs.depth_frame = aligned_frames.get_depth_frame()
+            color_frame: rs.video_frame = aligned_frames.get_color_frame()
+
+            if not depth_frame or not color_frame:
+                time.sleep(0.01)
+                continue
+
+            # --- 转换图像 ---
+            color_image = np.asanyarray(color_frame.get_data())
+            depth_colored = colourise_depth(depth_frame)
+
+            # --- 合成并更新状态 ---
+            combo = cv2.hconcat([color_image, depth_colored])
+
+            fps = 1.0 / (time.perf_counter() - last)
+            last = time.perf_counter()
+            cv2.putText(combo, f"RGB+Depth  {fps:5.1f} FPS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+            with _state_lock:
+                _state["rgbd"] = combo
+
+        # --- 清理 ---
+        print("[run_g1_stack] 正在停止 RealSense 管道...")
+        pipeline.stop()
+
+    except ImportError:
+        print("[run_g1_stack] RealSense 接收器已禁用: 'pyrealsense2' 未安装。", file=sys.stderr)
+    except Exception as exc:
+        print(f"[run_g1_stack] 本地 RealSense 接收器失败: {exc}", file=sys.stderr)
+
+
 def _rx_realsense_gstreamer(stop: threading.Event) -> None:
     """
     使用 GStreamer 接收 RealSense 的 RGB 和深度图像数据。
@@ -261,6 +333,8 @@ def _rx_realsense(stop: threading.Event) -> None:
     """
     print("[run_g1_stack] 强制使用 OpenCV 版本的 RealSense 接收器")
     _rx_realsense_opencv(stop)
+    print("[run_g1_stack] 使用本地 RealSense 接收器。")
+    _rx_realsense_local(stop)
 
 # ---------------------------------------------------------------------------
 # 2. Livox SLAM (2D 俯视图渲染)

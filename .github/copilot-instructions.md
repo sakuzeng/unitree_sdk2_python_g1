@@ -59,7 +59,7 @@
 
 ### 机器人控制代码
 - 使用 `unitree_sdk2_python` 进行机器人控制
-- 网络接口参数使用 `enth0` 作为默认值，提示用户修改
+- 网络接口参数使用 `eth0` 作为默认值，提示用户修改
 - 高级控制使用 sport_mode 服务
 - 低级控制需要先关闭 sport_mode
 
@@ -92,7 +92,7 @@ from unitree_sdk2_python.idl.unitree_go.msg.dds_ import SportModeCmd_
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 script.py <network_interface>")
-        print("Example: python3 script.py enp2s0")
+        print("Example: python3 script.py eth0")
         sys.exit(-1)
     
     network_interface = sys.argv[1]
@@ -275,7 +275,7 @@ def check_lidar_connection(ip="192.168.123.120", port=56301):
 ```python
 import subprocess
 
-def check_network_interface(interface="enp2s0"):
+def check_network_interface(interface="eth0"):
     """检查网络接口状态"""
     try:
         result = subprocess.run(['ip', 'addr', 'show', interface], 

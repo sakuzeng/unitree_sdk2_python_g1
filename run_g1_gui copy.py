@@ -133,7 +133,7 @@ def _setup_logging() -> logging.Logger:
 log = _setup_logging()
 
 # Qt 导入必须在 *类* 定义时可用，因为我们现在
-# 从 QtCore.QObject 派生 G1Windows，使其可以作为全局
+# 从 QtCore.QObject 派生 GeoffWindow，使其可以作为全局
 # 事件过滤器。
 
 try:
@@ -375,7 +375,7 @@ def _run_slam(stop_evt: threading.Event):  # pragma: no cover – needs HW
 # ------------------------------------------------------------------------
 
 
-class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-few-public-methods
+class GeoffWindow(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         iface: str,
@@ -2625,7 +2625,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    window = G1Windows(
+    window = GeoffWindow(
         args.iface,
         args.clear,
         hand=args.hand,
