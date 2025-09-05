@@ -8,3 +8,4 @@ pyside6
 pyqtgraph~=0.13
 webrtcvad 
 noisereduce
+netifaces

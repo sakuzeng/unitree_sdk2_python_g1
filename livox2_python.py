@@ -1,24 +1,23 @@
 from __future__ import annotations
-"""Wrapper for Livox-SDK **2** (push-mode, no broadcast).
-
-Tested against Livox-SDK2 1.2.x – build it first:
-
-    git clone https://github.com/Livox-SDK/Livox-SDK2.git
-    cd Livox-SDK2 && mkdir build && cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
-    sudo make install          # installs liblivox_lidar_sdk.so → /usr/local/lib
-
-Create a JSON config (see livox_lidar_quick_start/mid360_config.json) that
-points the LiDAR to *your* host-IP (192.168.123.222) and save it e.g.
-as ``mid360_config.json`` in this repo.  Pass that path to ``Livox2``.
 """
-"""封装Livox-SDK2
-首先安装Livox-SDK2:
+Livox-SDK2 Python 封装 (Push 模式，无广播)
+
+本模块封装了 Livox-SDK2 的 Push 模式接口，提供了一个 Pythonic 的点云数据处理管道。
+它支持通过 JSON 配置文件初始化雷达，接收点云数据，并将其转换为 NumPy 数组。
+
+功能概述:
+- 支持 Livox MID-360 激光雷达的 Push 模式点云数据接收。
+- 自动加载 Livox-SDK2 的动态链接库。
+- 提供点云数据的聚合和批量处理功能。
+- 支持多雷达设置（未测试）。
+
+使用方法:
+1. 安装 Livox-SDK2:
     git clone https://github.com/Livox-SDK/Livox-SDK2.git
     cd Livox-SDK2 && mkdir build && cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
-    sudo make install          # installs liblivox_lidar_sdk.so → /usr/local/lib
-                            #liblivox_lidar_sdk_shared.so → /usr/local/lib
+    sudo make install           # installs liblivox_lidar_sdk.so → /usr/local/lib
+                                #liblivox_lidar_sdk_shared.so → /usr/local/lib
 复制 livox_lidar_quick_start/mid360_config.json至本仓库，
 修改其中ip为自己的雷达ip(192.168.123.222)
 
@@ -45,31 +44,43 @@ from typing import Optional
 
 import numpy as np
 
-# ---------------- dynamic library ------------------------------------------------
+# ---------------------------------------------------------------------------
+# 动态加载 Livox-SDK2 共享库
+# ---------------------------------------------------------------------------
 
-# * 使用 ctypes.cdll.LoadLibrary() 动态加载 C++ 编译的共享库  --------------------------
 def _load_lib():
+    """
+    加载 Livox-SDK2 的动态链接库。
+
+    Returns:
+        CDLL: 已加载的共享库对象。
+
+    Raises:
+        OSError: 如果未找到共享库。
+    """
     for name in (
-        "liblivox_lidar_sdk_shared.so",
-        "liblivox_lidar_sdk.so",
-        "livox_lidar_sdk.dll",  # Windows
+        "liblivox_lidar_sdk_shared.so",  # Linux
+        "liblivox_lidar_sdk.so",         # 旧版 SDK
+        "livox_lidar_sdk.dll",           # Windows
     ):
         try:
             return _C.cdll.LoadLibrary(name)
         except OSError:
             continue
     raise OSError(
-        "liblivox_lidar_sdk shared library not found.  Build & install "
-        "Livox-SDK2 first (see wrapper docstring)."
+        "未找到 Livox-SDK2 共享库。请确保已正确安装 Livox-SDK2。"
     )
-
 
 _lib = _load_lib()
 
-# ---------------- ctypes mapping --------------------------------------------------
-
+# ---------------------------------------------------------------------------
+# Ctypes 结构体和回调函数原型定义
+# ---------------------------------------------------------------------------
 
 class _LivoxLidarEthernetPacket(_C.Structure):
+    """
+    描述 Livox 雷达的以太网数据包结构。
+    """
     _pack_ = 1
     _fields_ = [
         ("version", c_uint8),
@@ -86,8 +97,10 @@ class _LivoxLidarEthernetPacket(_C.Structure):
         ("data", c_uint8 * 1),
     ]
 
-
 class _CartesianHighPoint(_C.Structure):
+    """
+    描述 Livox 雷达的高精度笛卡尔点。
+    """
     _pack_ = 1
     _fields_ = [
         ("x", _C.c_int32),
@@ -96,7 +109,6 @@ class _CartesianHighPoint(_C.Structure):
         ("reflectivity", c_uint8),
         ("tag", c_uint8),
     ]
-
 
 # Callback typedef
 _PointCb = _C.CFUNCTYPE(None, c_uint32, c_uint8, POINTER(_LivoxLidarEthernetPacket), _C.c_void_p)
@@ -153,30 +165,43 @@ class Livox2:
 
     def __init__(self, config_path: str | Path, host_ip: str,
                  *, frame_time: float = 0.20, frame_packets: int = 120):
+        """
+        初始化 Livox2 实例。
+
+        Args:
+            config_path (str | Path): JSON 配置文件路径。
+            host_ip (str): 主机 IP 地址。
+            frame_time (float): 聚合帧的时间间隔（秒）。
+            frame_packets (int): 每帧的最大数据包数。
+
+        Raises:
+            RuntimeError: 如果 SDK 初始化失败。
+        """
         self._config_path = os.fspath(config_path).encode()
 
         if not _lib.LivoxLidarSdkInit(self._config_path, host_ip.encode(), None):
-            raise RuntimeError("LivoxLidarSdkInit failed – check config path & JSON")
+            raise RuntimeError("LivoxLidarSdkInit 初始化失败，请检查配置文件和 JSON 格式。")
 
-        # Register callback *before* starting threads (matches vendor sample)
+        # 注册点云回调函数
         self._cb = _PointCb(self._on_packet)
         _lib.SetLivoxLidarPointCloudCallBack(self._cb, None)
 
-        # start SDK threads
+        # 启动 SDK 线程
         _lib.LivoxLidarSdkStart()
 
-        # Register info-change callback to learn lidar handle once, then start it.
+        # 注册信息变更回调函数
         self._info_cb = _InfoChangeCb(self._on_info_change)
         _lib.SetLivoxLidarInfoChangeCallback(self._info_cb, None)
 
         self._running = True
-
-        # Aggregation parameters for pseudo-frames
         self._frame_time = float(frame_time)
         self._frame_packets = int(frame_packets)
 
     # ------------------------------------------------------------------
     def spin(self):
+        """
+        阻塞主线程，直到用户按下 Ctrl-C。
+        """
         try:
             while self._running:
                 time.sleep(0.01)
@@ -186,16 +211,34 @@ class Livox2:
             self.shutdown()
 
     def shutdown(self):
+        """
+        安全关闭 Livox SDK。
+        """
         if self._running:
             _lib.LivoxLidarSdkUninit()
             self._running = False
 
     # ------------------------------------------------------------------
-    def handle_points(self, xyz: np.ndarray):  # noqa: D401
-        print(f"frame {len(xyz)} pts")
+    def handle_points(self, xyz: np.ndarray):
+        """
+        处理点云数据的回调函数。
+
+        Args:
+            xyz (np.ndarray): 点云数据，形状为 (N, 3)。
+        """
+        print(f"接收到 {len(xyz)} 个点")
 
     # ------------------------------------------------------------------
     def _on_packet(self, handle: int, dev_type: int, pkt_ptr, _client):
+        """
+        处理 Livox 雷达的数据包。
+
+        Args:
+            handle (int): 雷达句柄。
+            dev_type (int): 设备类型。
+            pkt_ptr: 数据包指针。
+            _client: 客户端指针。
+        """
         pkt = pkt_ptr.contents
         n = pkt.dot_num
         if n == 0:
@@ -269,23 +312,31 @@ class Livox2:
 
     # ------------------------------------------------------------------
     def _on_info_change(self, handle: int, info_ptr, _client):
+        """
+        处理 Livox 雷达的信息变更。
+
+        Args:
+            handle (int): 雷达句柄。
+            info_ptr: 信息指针。
+            _client: 客户端指针。
+        """
         print(f"[Livox2] InfoChange handle={handle}")
 
-        # Set work mode to NORMAL (1) to begin emitting points.
+        # 设置工作模式为 NORMAL (1) to begin emitting points.
         kNormal = 1
         _lib.SetLivoxLidarWorkMode(handle, kNormal, None, None)
 
-        # Ensure point-cloud sending is enabled
+        # 确保点云发送已启用
         _lib.EnableLivoxLidarPointSend(handle, None, None)
 
-        # Ensure data type is Cartesian High (1)
+        # 确保数据类型为 Cartesian High (1)
         _lib.SetLivoxLidarPclDataType(handle, 1, None, None)
 
 
 if __name__ == "__main__":
     cfg = Path("mid360_config.json")
     if not cfg.exists():
-        # generate a bare-bones config for 192.168.123.222
+        # 生成默认配置文件
         host_ip = os.environ.get("HOST_IP", "192.168.123.164")
         data = {
             "MID360": {
@@ -310,7 +361,7 @@ if __name__ == "__main__":
             }
         }
         cfg.write_text(json.dumps(data, indent=2))
-        print("[Livox2] Wrote default mid360_config.json with host_ip", host_ip)
+        print("[Livox2] 默认配置文件已生成:", host_ip)
 
     lidar = Livox2(cfg, host_ip="192.168.123.222")
     lidar.spin()

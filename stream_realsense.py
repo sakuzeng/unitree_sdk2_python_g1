@@ -2,24 +2,21 @@
 stream_realsense.py
 ====================
 
-A small convenience wrapper around Intel RealSense SDK (librealsense) that
-demonstrates how to:
+本脚本是 Intel RealSense SDK (librealsense) 的一个简单封装，演示以下功能：
 
-1. Detect a connected RealSense device.
-2. Stream depth + colour (RGB) frames at the same resolution / FPS.
-3. Optionally stream the two infrared (IR) channels and the IMU (gyroscope & accelerometer) if the
-   selected model supports them (e.g. D435i).
-4. Display the images live using OpenCV.
-5. Exit cleanly when the user presses the **ESC** or **q** key.
+1. 检测连接的 RealSense 设备。
+2. 同时流式传输深度和 RGB 图像（分辨率和帧率相同）。
+3. 可选地流式传输两个红外 (IR) 通道和 IMU 数据（如陀螺仪和加速度计）。
+4. 使用 OpenCV 实时显示图像。
+5. 用户按下 **ESC** 或 **q** 键时干净退出。
 
-This file is 100 % self-contained – the only runtime dependencies are:
+依赖:
+- `pyrealsense2` (`pip install pyrealsense2`)
+- `opencv-python` (`pip install opencv-python`)
 
-* pyrealsense2  (``pip install pyrealsense2``)
-* opencv-python  (``pip install opencv-python``)
+无需额外的辅助库或 ROS 运行时环境。
 
-No additional helper libraries or ROS runtimes are required.
-
-Author: OpenAI Codex-CLI helper
+作者: OpenAI Codex-CLI helper
 """
 
 from __future__ import annotations
@@ -45,11 +42,15 @@ except ImportError as exc:  # pragma: no cover – only happens if dependency mi
 # ---------------------------------------------------------------------------
 
 
-def check_device_availability():
-    """检查设备是否被其他进程占用"""
+def check_device_availability() -> bool:
+    """
+    检查 RealSense 设备是否被其他进程占用。
+
+    Returns:
+        bool: 如果设备可用，返回 True；否则返回 False。
+    """
     try:
-        result = subprocess.run(['lsof', '/dev/video*'], 
-                              capture_output=True, text=True)
+        result = subprocess.run(['lsof', '/dev/video*'], capture_output=True, text=True)
         if result.stdout:
             print("警告: 检测到摄像头设备被占用:")
             print(result.stdout)
@@ -59,8 +60,10 @@ def check_device_availability():
         return True  # 如果检查失败，假设设备可用
 
 
-def reset_usb_devices():
-    """重置 USB 摄像头设备"""
+def reset_usb_devices() -> None:
+    """
+    重置 USB 摄像头设备。
+    """
     try:
         print("正在重置 USB 摄像头设备...")
         subprocess.run(['sudo', 'modprobe', '-r', 'uvcvideo'], check=False)
@@ -73,28 +76,31 @@ def reset_usb_devices():
 
 
 def colourise_depth(depth_frame: rs.depth_frame) -> cv2.Mat:
-    """Converts a depth frame (16-bit, in millimetres) into an 8-bit BGR image.
-
-    The function normalises the depth range to 0-255 and applies the OpenCV
-    *JET* colour map so that closer objects appear red and farther objects
-    blue.
     """
-    # 修复：将 RealSense 数据转换为 numpy 数组
+    将深度帧 (16-bit, 毫米) 转换为 8-bit BGR 图像。
+
+    Args:
+        depth_frame (rs.depth_frame): RealSense 深度帧。
+
+    Returns:
+        cv2.Mat: 伪彩色深度图像。
+    """
     depth_data = np.asanyarray(depth_frame.get_data())
-    
-    # 转换为 8-bit 灰度图像
     depth_image = cv2.convertScaleAbs(depth_data, alpha=0.03)
-    
-    # 转换为 BGR 格式
     depth_image_bgr = cv2.cvtColor(depth_image, cv2.COLOR_GRAY2BGR)
-    
-    # 应用颜色映射
-    depth_coloured = cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
-    return depth_coloured
+    return cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
 
 
 def get_first_device(context: rs.context) -> Optional[rs.device]:
-    """Return the first RealSense device if any, otherwise *None*."""
+    """
+    返回第一个 RealSense 设备，如果没有设备则返回 None。
+
+    Args:
+        context (rs.context): RealSense 上下文。
+
+    Returns:
+        Optional[rs.device]: 第一个 RealSense 设备。
+    """
     devices = context.query_devices()
     if len(devices) == 0:
         return None
@@ -113,21 +119,26 @@ def run_with_retry(
     enable_infra: bool = False,
     enable_imu: bool = False,
     max_retries: int = 3
-):
-    """带重试机制的运行函数"""
-    
+) -> None:
+    """
+    带重试机制的运行函数。
+
+    Args:
+        rgb_width (int): RGB 图像宽度。
+        rgb_height (int): RGB 图像高度。
+        fps (int): 帧率。
+        enable_infra (bool): 是否启用红外流。
+        enable_imu (bool): 是否启用 IMU 数据流。
+        max_retries (int): 最大重试次数。
+    """
     for attempt in range(max_retries):
         try:
             print(f"尝试启动摄像头 (第 {attempt + 1}/{max_retries} 次)...")
-            
-            # 检查设备可用性
             if not check_device_availability():
                 print("设备被占用，尝试重置...")
                 reset_usb_devices()
-            
             run(rgb_width, rgb_height, fps, enable_infra, enable_imu)
             return  # 成功运行，退出重试循环
-            
         except RuntimeError as e:
             if "Device or resource busy" in str(e) or "xioctl" in str(e):
                 print(f"设备忙碌错误: {e}")
@@ -139,7 +150,7 @@ def run_with_retry(
                     print("所有重试都失败了")
                     raise
             else:
-                raise  # 其他错误直接抛出
+                raise
 
 
 def run(
@@ -148,9 +159,17 @@ def run(
     fps: int = 30,
     enable_infra: bool = False,
     enable_imu: bool = False,
-):
-    """Open a pipeline, start streaming, and display frames."""
+) -> None:
+    """
+    打开管道，开始流式传输，并显示帧数据。
 
+    Args:
+        rgb_width (int): RGB 图像宽度。
+        rgb_height (int): RGB 图像高度。
+        fps (int): 帧率。
+        enable_infra (bool): 是否启用红外流。
+        enable_imu (bool): 是否启用 IMU 数据流。
+    """
     ctx = rs.context()
     device = get_first_device(ctx)
 
@@ -161,26 +180,17 @@ def run(
     print("  Serial number:", device.get_info(rs.camera_info.serial_number))
     print("  Firmware ver.:", device.get_info(rs.camera_info.firmware_version))
 
-    # Configure pipeline streams
+    # 配置管道流
     pipeline = rs.pipeline(ctx)
     config = rs.config()
-
-    # If you have multiple cameras, you may specify the serial number here:
-    # config.enable_device(<serial>)
-
-    # Depth and colour should have matching resolution + fps when we plan to
-    # perform alignment.
     config.enable_stream(rs.stream.depth, rgb_width, rgb_height, rs.format.z16, fps)
     config.enable_stream(rs.stream.color, rgb_width, rgb_height, rs.format.bgr8, fps)
 
     if enable_infra:
-        # Left and right infrared
         config.enable_stream(rs.stream.infrared, 1, rgb_width, rgb_height, rs.format.y8, fps)
         config.enable_stream(rs.stream.infrared, 2, rgb_width, rgb_height, rs.format.y8, fps)
 
     if enable_imu:
-        # D435i exposes gyro at 400 Hz and accel at 250 Hz (but we can ask for
-        # any value <= the max).
         config.enable_stream(rs.stream.gyro, rs.format.motion_xyz32f, 400)
         config.enable_stream(rs.stream.accel, rs.format.motion_xyz32f, 250)
 
@@ -193,15 +203,7 @@ def run(
 
     # Start streaming
     print("Starting pipeline …")
-    try:
-        profile = pipeline.start(config)
-    except RuntimeError as e:
-        if "Device or resource busy" in str(e):
-            raise RuntimeError(f"摄像头设备被占用。请运行以下命令释放设备:\n"
-                             f"sudo pkill -f realsense\n"
-                             f"sudo modprobe -r uvcvideo && sudo modprobe uvcvideo")
-        else:
-            raise
+    profile = pipeline.start(config)
 
     print("Camera intrinsics (colour stream):")
     colour_intr: rs.video_stream_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
@@ -210,9 +212,8 @@ def run(
     print(f"  Focal length  : fx={intr.fx:.1f}  fy={intr.fy:.1f}")
     print(f"  Principal pt. : cx={intr.ppx:.1f} cy={intr.ppy:.1f}")
 
-    # Main loop ----------------------------------------------------------------
+    # 主循环
     last_time = time.perf_counter()
-
     try:
         print("摄像头流已启动。按 ESC 或 'q' 键退出。")
         while True:

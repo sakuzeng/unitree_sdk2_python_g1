@@ -1,11 +1,10 @@
-"""run_geoff_stack.py – one-stop script that starts
+"""run_g1_stack.py – 一站式脚本，启动以下功能模块:
 
-1.  Unitree G-1 tele-operation (keyboard_controller.py)
-2.  RealSense UDP viewer (receive_realsense_gst.py – RGB & colourised depth)
-3.  Live LiDAR SLAM for the Livox MID-360 (live_slam.py)
+1. Unitree G-1 机器人键盘遥控 (keyboard_controller.py)
+2. RealSense 视频流接收器 (receive_realsense_gst.py – RGB & 彩色深度)
+3. Livox MID-360 激光雷达实时 SLAM (live_slam.py)
 
-and combines the *visual* output into **one single OpenCV window** that looks
-roughly like::
+并将上述模块的**视觉输出**合并到一个 OpenCV 窗口中，布局如下::
 
     ┌──────────────────────────── RGB (640×480) ───────────────────────────┐
     │                                                                     │
@@ -13,43 +12,19 @@ roughly like::
     │                                                                     │
     └─────────────────────── 2-D SLAM preview (480×480) ───────────────────┘
 
-The script has been written for convenience rather than scientific rigor –
-it glues the three existing modules together with a minimum of changes and
-contains a fair bit of *best-effort* fall-back logic so it can still be
-imported on machines that lack some of the heavyweight runtime dependencies
-(GStreamer, Livox SDK, Open3D, Unitree SDK, …).  If a component is missing a
-clear warning is printed and the corresponding pane simply shows a solid
-grey background.
+功能概述:
+- **线程管理**: 各子系统运行在后台线程中，最新的 NumPy 图像存储在共享字典中。
+- **SLAM 可视化**: 替换 `live_slam._Viewer`，将 3D 地图渲染为 2D 俯视图。
+- **键盘遥控**: 从 `keyboard_controller.py` 中复制并精简，支持实时速度显示。
 
-Usage
------
+运行方法:
+    python run_g1_stack.py [--iface IFACE]
 
-    python run_geoff_stack.py [--iface IFACE]
+参数说明:
+- `--iface`: 指定与 Unitree G-1 连接的网络接口，默认为 `eth0`。
 
-``--iface`` specifies the network interface that is connected to the Unitree
-G-1 and is forwarded to ``hanger_boot_sequence()``.  All other parameters are
-identical to the individual helper scripts and can still be tweaked via the
-respective environment variables (e.g. ``LIVOX_PRESET``).
-
-Implementation notes
---------------------
-
-* **Threading** – the three subsystems run in background threads and publish
-  their most recent numpy images in a shared dictionary (protected by a very
-  light-weight ``threading.Lock`` since we only replace whole numpy arrays).
-* **SLAM visualisation** – in order to stick to *one* GUI window we replace
-  ``live_slam._Viewer`` with a minimal off-screen variant that renders a
-  simple bird-eye 2-D projection of the local map into a 480×480 numpy
-  canvas.  This keeps the dependency surface small (no need for an OpenGL
-  context) and plays well with OpenCV.
-* **Keyboard tele-op** – copied & trimmed from ``keyboard_controller.py``.  We
-  keep the exact key-bindings and update the current target velocities in
-  ``shared_state`` so they can be overlayed on the composite canvas.
-
-If you need richer 3-D interaction in the future consider migrating the
-front-end to ``open3d.visualization.gui`` or PyQt – both can embed the full
-Open3D widget next to normal images – but that would add quite some
-additional boiler-plate.
+注意事项:
+- 如果缺少某些依赖，脚本会打印警告并用灰色背景替代对应的输出。
 """
 
 from __future__ import annotations
@@ -62,23 +37,27 @@ from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
 # ---------------------------------------------------------------------------
-# Shared state between threads (very small – only last frame / numbers).
+# 共享状态管理
 # ---------------------------------------------------------------------------
 
 _state_lock = threading.Lock()
 _state: Dict[str, Any] = {
-    "rgbd": None,        # numpy BGR image from RealSense (1280×480)
-    "slam": None,        # numpy BGR image (480×480)
-    "vel": (0.0, 0.0, 0.0),  # current (vx, vy, omega)
+    "rgbd": None,        # RealSense 的 RGB + 深度图像 (1280×480)
+    "slam": None,        # SLAM 的 2D 俯视图 (480×480)
+    "vel": (0.0, 0.0, 0.0),  # 当前速度 (vx, vy, omega)
 }
 
-
 # ---------------------------------------------------------------------------
-# 1.  RealSense receiver  (OpenCV + UDP → numpy) – 支持两种接收方式
+# 1. RealSense 接收器 (支持 GStreamer 和 OpenCV)
 # ---------------------------------------------------------------------------
 
-def _rx_realsense_gstreamer(stop: threading.Event) -> None:  # pragma: no cover – HW req.
-    """GStreamer版本的RealSense接收器（原版本）"""
+def _rx_realsense_gstreamer(stop: threading.Event) -> None:
+    """
+    使用 GStreamer 接收 RealSense 的 RGB 和深度图像数据。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+    """
     try:
         import gi  # type: ignore
 
@@ -144,8 +123,13 @@ def _rx_realsense_gstreamer(stop: threading.Event) -> None:  # pragma: no cover 
         print("[run_g1_stack] GStreamer RealSense receiver disabled:", exc, file=sys.stderr)
 
 
-def _rx_realsense_opencv(stop: threading.Event) -> None:  # pragma: no cover – HW req.
-    """OpenCV版本的RealSense接收器（无需gi依赖）"""
+def _rx_realsense_opencv(stop: threading.Event) -> None:
+    """
+    使用 OpenCV 接收 RealSense 的 RGB 和深度图像数据。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+    """
     try:
         import numpy as np
         import cv2
@@ -268,31 +252,26 @@ def _rx_realsense_opencv(stop: threading.Event) -> None:  # pragma: no cover –
         print("[run_g1_stack] OpenCV RealSense receiver disabled:", exc, file=sys.stderr)
 
 
-def _rx_realsense(stop: threading.Event) -> None:  # pragma: no cover – HW req.
-    """智能选择RealSense接收器版本"""
-    try:
-        # 优先尝试GStreamer版本
-        import gi
-        gi.require_version("Gst", "1.0")
-        print("[run_g1_stack] 使用GStreamer版本的RealSense接收器")
-        _rx_realsense_gstreamer(stop)
-    except ImportError:
-        # 回退到OpenCV版本
-        print("[run_g1_stack] GStreamer不可用，使用OpenCV版本的RealSense接收器")
-        _rx_realsense_opencv(stop)
+def _rx_realsense(stop: threading.Event) -> None:
+    """
+    选择 RealSense 接收器的实现 (优先使用 OpenCV)。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+    """
+    print("[run_g1_stack] 强制使用 OpenCV 版本的 RealSense 接收器")
+    _rx_realsense_opencv(stop)
 
 # ---------------------------------------------------------------------------
-# 2.  Live SLAM  →  2-D bird-eye preview (numpy 480×480)
+# 2. Livox SLAM (2D 俯视图渲染)
 # ---------------------------------------------------------------------------
 
+def _monkey_patch_slam_viewer() -> None:
+    """
+    替换 `live_slam._Viewer`，将 3D 地图渲染为 2D 俯视图。
 
-def _monkey_patch_slam_viewer() -> None:  # pragma: no cover – small helper
-    """Replace live_slam._Viewer with a minimal off-screen variant.
-
-    The new implementation only keeps the public contract (``push()`` &
-    ``tick()``) but instead of opening an OpenGL window it renders a 2-D top-
-    down scatter plot into a small numpy canvas so we can show it next to the
-    camera streams inside the OpenCV mosaic.
+    此实现保留了 `push()` 和 `tick()` 的接口，但将渲染结果输出为 NumPy 数组，
+    以便在 OpenCV 窗口中显示。
     """
 
     try:
@@ -360,7 +339,13 @@ def _monkey_patch_slam_viewer() -> None:  # pragma: no cover – small helper
         print("[run_geoff_stack] SLAM viewer patch failed:", exc, file=sys.stderr)
 
 
-def _run_slam(stop: threading.Event) -> None:  # pragma: no cover – HW req.
+def _run_slam(stop: threading.Event) -> None:
+    """
+    运行 Livox SLAM，并将 2D 渲染结果存储到共享状态中。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+    """
     try:
         _monkey_patch_slam_viewer()
 
@@ -381,11 +366,17 @@ def _run_slam(stop: threading.Event) -> None:  # pragma: no cover – HW req.
 
 
 # ---------------------------------------------------------------------------
-# 3.  Keyboard tele-operation (pynput → Unitree G-1)
+# 3. Unitree G-1 键盘遥控
 # ---------------------------------------------------------------------------
 
-
 def _keyboard_thread(stop: threading.Event, iface: str):
+    """
+    运行 Unitree G-1 的键盘遥控模块。
+
+    Args:
+        stop (threading.Event): 用于控制线程停止的事件。
+        iface (str): 与 Unitree G-1 连接的网络接口。
+    """
     try:
         from hanger_boot_sequence import hanger_boot_sequence  # type: ignore
         from pynput.keyboard import Listener, Key, KeyCode  # type: ignore
@@ -472,11 +463,16 @@ def _keyboard_thread(stop: threading.Event, iface: str):
 
 
 # ---------------------------------------------------------------------------
-# Top-level composite GUI – OpenCV only
+# OpenCV 窗口合成
 # ---------------------------------------------------------------------------
 
+def _compose_canvas() -> Optional[np.ndarray]:
+    """
+    合成 OpenCV 窗口，将 RGB、深度和 SLAM 数据合并到一个画布中。
 
-def _compose_canvas() -> "Optional['np.ndarray']":  # type: ignore[name-defined]
+    Returns:
+        Optional[np.ndarray]: 合成后的画布图像。
+    """
     import numpy as np  # local import to avoid hard dep if script is only imported
     import cv2  # type: ignore
 
@@ -509,28 +505,32 @@ def _compose_canvas() -> "Optional['np.ndarray']":  # type: ignore[name-defined]
 
 
 # ---------------------------------------------------------------------------
+# 主函数
+# ---------------------------------------------------------------------------
 
-
-def main() -> None:  # noqa: D401
+def main() -> None:
+    """
+    主函数，启动所有模块并显示合成的 OpenCV 窗口。
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--iface", default="enth0", help="network interface connected to Unitree G-1")
+    parser.add_argument("--iface", default="eth0", help="与 Unitree G-1 连接的网络接口")
     args = parser.parse_args()
 
     stop = threading.Event()
 
-    # ------------------------------------------------  start background jobs
+    # 启动后台线程
     workers = [
         ("RealSense", threading.Thread(target=_rx_realsense, args=(stop,), daemon=True)),
         ("SLAM", threading.Thread(target=_run_slam, args=(stop,), daemon=True)),
         ("G1", threading.Thread(target=_keyboard_thread, args=(stop, args.iface), daemon=True)),
     ]
 
-    for _name, t in workers:
+    for name, t in workers:
         t.start()
 
-    # ------------------------------------------------  simple OpenCV window
+    # 显示 OpenCV 窗口
     try:
-        import cv2  # type: ignore
+        import cv2
 
         while not stop.is_set():
             canvas = _compose_canvas()
@@ -548,7 +548,7 @@ def main() -> None:  # noqa: D401
 
     finally:
         stop.set()
-        for _name, t in workers:
+        for name, t in workers:
             t.join(timeout=1.0)
 
 

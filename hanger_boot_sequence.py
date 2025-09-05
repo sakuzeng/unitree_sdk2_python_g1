@@ -1,13 +1,15 @@
-'''
-@Author: sakuzeng1213
-@Date: 2025-08-25 12:28:19
-@LastEditTime: 2025-08-26 15:53:27
-@LastEditors: sakuzeng1213
-@FilePath: /unitree_sdk2_python_g1/hanger_boot_sequence.py
-@Description: 
-悬挂启动程序
+"""
+悬挂启动程序 (Hanger Boot Sequence)
 
-'''
+本脚本为 Unitree G1 机器人提供一个从被动悬挂状态到自主平衡站立的安全启动序列。
+它会引导用户完成机器人触地的过程，并自动切换到平衡站立模式。
+
+使用方法:
+    python3 hanger_boot_sequence.py --iface <network_interface>
+
+例如:
+    python3 hanger_boot_sequence.py eth0
+"""
 from __future__ import annotations
 
 import time
@@ -18,128 +20,149 @@ from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitial
 from unitree_sdk2py.idl.unitree_go.msg.dds_ import SportModeState_
 from unitree_sdk2py.g1.loco.g1_loco_client import LocoClient
 
-#--------------------------------------------------------------------
-# return: LocoClient instance,fsm id:200,fsm mode 0/1
-#--------------------------------------------------------------------
+
 def hanger_boot_sequence(
     iface: str = "eth0",
     step: float = 0.02,
     max_height: float = 0.5,
-) -> LocoClient:    
+) -> LocoClient:
+    """
+    执行机器人从悬挂状态到站立的启动序列。
 
-    # DDS initialisation ---------------------------------------------------
+    Args:
+        iface (str): 用于 DDS 通信的网络接口名称，默认为 "eth0"。
+        step (float): 每次增加的站立高度步长（米），默认为 0.02。
+        max_height (float): 尝试达到的最大站立高度（米），默认为 0.5。
+
+    Returns:
+        LocoClient: 初始化并进入平衡站立模式后的运动控制客户端实例。
+    """
+    # 1. 初始化 DDS 通信和运动控制客户端
     ChannelFactoryInitialize(0, iface)
 
     sport_client = LocoClient()
     sport_client.SetTimeout(10.0)
     sport_client.Init()
 
-    #------------------------------------------------------------------------------------------------
-    # 当前已经处于主运控(fsm id:200)且当前fsm mode为0/1（处于站立状态或移动状态）时直接返回当前client
-    #------------------------------------------------------------------------------------------------
+    # 检查机器人是否已处于站立或运动状态 (FSM ID 200, FSM mode 0/1)
+    # 如果是，则跳过启动序列，直接返回。
     try:
         cur_id = int(sport_client.GetFsmId())
         cur_mode = int(sport_client.GetFsmMode())
         if cur_id == 200 and cur_mode is not None and cur_mode != 2:
             print(
-                f"Rosport_client already in balanced stand (FSM 200, mode {cur_mode}) – skipping boot sequence."
+                f"机器人已处于平衡站立状态 (FSM 200, mode {cur_mode}) – 跳过启动序列。"
             )
             return sport_client
     except Exception:
         pass
 
-    # 解析函数返回值，返回int型  ----------------------------------------------------------------
-    def get_mode(val):
-        # 如果是字符串且是json格式，先解析
+    def get_mode(val) -> Optional[int]:
+        """
+        解析运动控制客户端返回的值，提取模式（mode）或状态ID（FSM ID）。
+        返回值可能是 JSON 字符串或字典。
+        """
         if isinstance(val, str):
             try:
                 val = json.loads(val)
             except Exception:
                 pass
-        # 如果是字典，取data
         if isinstance(val, dict) and "data" in val:
             return int(val["data"])
-        # 如果已经是数字
         try:
             return int(val)
-        except Exception:
-            return val
-    # 打印FSM信息  ----------------------------------------------------------------
+        except (ValueError, TypeError):
+            return None
+
     def show(tag: str) -> None:
-        print(f"{tag:<12} → FSM {get_mode(sport_client.GetFsmId())}   mode {get_mode(sport_client.GetFsmMode())}")
+        """打印当前操作和机器人的 FSM 及平衡状态信息。"""
+        fsm_id = get_mode(sport_client.GetFsmId())
+        fsm_mode = get_mode(sport_client.GetFsmMode())
+        balance_mode = get_mode(sport_client.GetBalanceMode())
+        print(f"{tag:<12} → FSM {fsm_id}   mode {fsm_mode}   balance {balance_mode}")
 
-    # - 1. Damp 阻尼模式 fsm:1 --------------------------------------------------------------
-    sport_client.Damp(); show("Damp")
+    # 2. 进入阻尼模式 (Damp, FSM ID: 1)
+    # 此时关节有阻力，但不会主动运动。
+    sport_client.Damp()
+    show("Damp")
 
-    input("确认机器人双足已触地...")
+    input("请确认机器人双足已触地，然后按回车键继续...")
 
-    # - 2. Stand-up 预备模式（锁定站立）fsm:4 ----------------------------------------------------------
-    sport_client.StandUp(); show("StandUp")
+    # 3. 进入预备站立模式 (StandUp, FSM ID: 4)
+    # 机器人会进入一个固定的站立姿态，但足底可能还未承重。
+    sport_client.StandUp()
+    show("StandUp")
 
-    #------------------------------------------------------------------------------------------------
-    # 3. 检测 mode 是否为 0，如果是则直接跳出循环，否则提示用户确认机器人触地，然后逐步增加站立高度直到 mode 为 0
-    #------------------------------------------------------------------------------------------------
+    # 4. 自动检测触地与调整高度
+    # 循环检测机器人是否已承重站立 (mode 0)，如果未达到则逐步增加高度。
     while True:
-        # 先检测当前 mode
+        # 如果当前已是站立模式 (mode 0)，则退出循环。
         if get_mode(sport_client.GetFsmMode()) == 0:
-            print("机器人已处于站立状态（mode=0），无需重复检测。")
+            print("机器人已处于站立状态 (mode=0)，无需重复检测。")
             break
 
-        # 否则提示用户确认机器人双足已触地
-        input("请确认机器人双足已触地后按回车继续...")
+        # 提示用户进行物理确认
+        input("请再次确认机器人双足已触地，然后按回车键开始高度调整...")
 
-        # 逐步增加站立高度，直到 mode 为 0
+        # 逐步增加目标站立高度，直到检测到足底承重 (mode 0)。
         height = 0.0
         while height < max_height:
             height += step
             sport_client.SetStandHeight(height)
             show(f"height {height:.2f} m")
             if get_mode(sport_client.GetFsmMode()) == 0:
-                print(f"检测到机器人进入站立状态（mode=0），当前高度：{height:.2f} m")
+                print(f"检测到机器人进入站立状态 (mode=0)，当前高度：{height:.2f} m")
                 break
 
-        # 如果已经进入 mode=0，跳出外层循环
+        # 如果成功站立，则跳出外层循环。
         if get_mode(sport_client.GetFsmMode()) == 0:
             break
 
-        # 如果还未进入 mode=0，提示用户调整悬挂架并重试
+        # 如果达到最大高度仍未站立，提示用户手动调整并重试。
         print(
-            f"Feet still unloaded (mode {get_mode(sport_client.GetFsmMode())}) after reaching {height:.2f} m.\n"
-            "请调整悬挂架高度（升高或降低），确保双足刚好接触地面，然后按回车重试…"
+            f"在达到 {height:.2f} 米高度后，足底仍未承重 (mode {get_mode(sport_client.GetFsmMode())})。\n"
+            "请调整悬挂架高度，确保双足刚好接触地面，然后按回车重试…"
         )
         try:
             sport_client.SetStandHeight(0.0)
             show("reset")
         except Exception:
             pass
-        input()  # 等待用户
+        input()  # 等待用户操作
 
-    # - 4. BalanceMode: 0(平衡站立)  ----------------------------------------------------------------
-    sport_client.SetBalanceMode(0); show("balance")
-    # sport_client.SetStandHeight(height); show("height✔")
+    # 5. 设置为平衡站立模式 (BalanceMode 0)
+    sport_client.SetBalanceMode(0)
+    show("balance")
 
-    # - 5. Start 主运控  fsm id: 200  ----------------------------------------------------------------
-    input("尽量将机器人正常直立，否则刚开始确立平衡动静大...")
-    sport_client.Start(); show("Start")
-    # - 6. BalanceMode: 1(连续步态)  ----------------------------------------------------------------
-    # sport_client.SetBalanceMode(1); show("ContinuousGait")
+    # 6. 启动主运动控制器 (Start, FSM ID: 200)
+    # 机器人将进入可以自主平衡和移动的状态。
+    input("警告：即将启动主运控。请确保机器人姿态大致直立，否则初始平衡动作可能较大。按回车继续...")
+    sport_client.Start()
+    show("Start")
 
     return sport_client
 
+
 def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Test hanger_boot_sequence for Unitree G1")
-    parser.add_argument("--iface", default="eth0", help="network interface connected to rosport_client")
+    """
+    主函数，用于解析命令行参数并执行悬挂启动序列。
+    """
+    parser = argparse.ArgumentParser(description="Unitree G1 悬挂启动测试程序")
+    parser.add_argument("--iface", default="eth0", help="连接到机器人的网络接口")
     args = parser.parse_args()
 
     sport_client = hanger_boot_sequence(iface=args.iface)
-    print("Boot sequence finished. You can now send velocity commands to the rosport_client.")
-    print(f"Current FSM ID: {sport_client.GetFsmId()}, FSM Mode: {sport_client.GetFsmMode()}")
+    print("\n启动序列完成。现在可以向机器人发送运动指令。")
+    print(f"当前 FSM ID: {sport_client.GetFsmId()}, FSM Mode: {sport_client.GetFsmMode()}")
+
 
 if __name__ == "__main__":
+    # 导入 argparse 仅在直接运行脚本时需要
+    import argparse
+
     main()
 
-# 用于定义当使用 from hanger_boot_sequence import * 时，哪些名称会被导入。
+# 定义当使用 from hanger_boot_sequence import * 时，哪些名称会被导入
 __all__ = ["hanger_boot_sequence"]
 
 

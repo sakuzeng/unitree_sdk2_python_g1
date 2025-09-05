@@ -50,6 +50,13 @@
 
 ## 代码生成指导
 
+### 参考项目文档
+在生成或修改代码时，请务必参考 `docs/` 目录下的以下关键文档，以确保符合项目设计和需求：
+- **`docs/contents.md`**: 项目的总体结构、功能模块和技术栈说明。
+- **`docs/requirements.md`**: 详细的功能性和非功能性需求。
+- **`docs/g1_edu.md`**: G1 EDU 版本的特定说明和开发指南。
+- **`unitree_sdk2_python.md`**: 详解 `unitree_sdk2_python` SDK 的结构和使用方法。
+
 ### 机器人控制代码
 - 使用 `unitree_sdk2_python` 进行机器人控制
 - 网络接口参数使用 `enth0` 作为默认值，提示用户修改

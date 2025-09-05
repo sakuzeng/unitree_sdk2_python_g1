@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """G-1 Arm Joint Monitor GUI - 数值监控版本（无绘图）
 
+本脚本提供一个基于 PySide6 的图形用户界面，用于实时监控 Unitree G-1 机器人
+手臂和腰部关节的角度及变化速度。
+
 Layout
 ======
 ┌─────────────────────────── G-1 Arm Joint Monitor ─────────────────────────────┐
@@ -26,9 +29,9 @@ import time
 import sys
 import os
 from typing import Dict, List, Tuple
-from collections import deque # * 用于存储关节角度的历史数据，支持高效的队列操作
+from collections import deque
 
-# Qt 相关导入,用于构建 GUI。
+# 用于构建 GUI 的 Qt 相关库
 try:
     from PySide6 import QtCore, QtWidgets, QtGui
 except ImportError as e:
@@ -36,10 +39,14 @@ except ImportError as e:
     print(f"错误: {e}")
     sys.exit(1)
 
+# Unitree SDK 相关导入
 from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ # *定义机器人低级状态数据的消息类型，包含关节角度等信息。
-# 用于定义 Unitree G1 机器人手臂和腰部关节的索引值
+# LowState_ 定义了机器人低级状态数据的消息类型，包含关节角度等信息
+from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_
+
+
 class G1JointIndex:
+    """定义 Unitree G1 机器人手臂和腰部关节的索引值。"""
     # Left arm
     LeftShoulderPitch = 15
     LeftShoulderRoll = 16
@@ -62,7 +69,14 @@ class G1JointIndex:
     WaistYaw = 12
 
 class ArmJointMonitorGUI(QtCore.QObject):
+    """
+    机器人手臂关节监控 GUI 的主类。
+
+    负责初始化 GUI 界面、设置 Unitree SDK 数据订阅、处理数据回调
+    以及更新界面显示。
+    """
     def __init__(self):
+        """初始化监控器 GUI。"""
         super().__init__()
         
         # 机器人状态数据
@@ -115,7 +129,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         self._setup_unitree()
 
     def _setup_gui(self):
-        """设置 GUI 界面"""
+        """初始化并设置所有 GUI 组件。"""
         # 检查是否已有应用实例
         self.app = QtWidgets.QApplication.instance()
         if self.app is None:
@@ -156,7 +170,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         self.update_timer.start(50)  # 20Hz 更新，提高响应速度
 
     def _setup_joint_table(self):
-        """设置关节数据表格"""
+        """设置用于显示关节数据的表格。"""
         self.joint_table = QtWidgets.QTableWidget()
         self.joint_table.setColumnCount(3)
         self.joint_table.setHorizontalHeaderLabels(["Left Arm", "Waist", "Right Arm"])
@@ -189,7 +203,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         self._init_table_content()
 
     def _init_table_content(self):
-        """初始化表格内容"""
+        """使用占位符初始化表格内容。"""
         left_arm_joints = [info for info in self.joint_info if info[2] == "left"]
         waist_joint = [info for info in self.joint_info if info[2] == "waist"]
         right_arm_joints = [info for info in self.joint_info if info[2] == "right"]
@@ -217,7 +231,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
                 self.joint_table.setItem(row, 2, item)
 
     def _setup_stats_widget(self):
-        """设置统计信息显示"""
+        """设置用于显示统计信息的小组件。"""
         self.stats_widget = QtWidgets.QGroupBox("统计信息")
         stats_layout = QtWidgets.QGridLayout(self.stats_widget)
         
@@ -246,7 +260,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         stats_layout.addWidget(self.sensitivity_label, 1, 2)
 
     def _setup_control_buttons(self):
-        """设置控制按钮"""
+        """设置控制按钮和灵敏度调整小组件。"""
         self.button_widget = QtWidgets.QWidget()
         button_layout = QtWidgets.QHBoxLayout(self.button_widget)
         
@@ -278,15 +292,20 @@ class ArmJointMonitorGUI(QtCore.QObject):
         button_layout.addWidget(self.sensitivity_spinbox)
         
         button_layout.addStretch()
-    #-数据获取
+
     def _setup_unitree(self):
-        """"""
+        """初始化 Unitree SDK，订阅机器人低级状态数据。"""
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowState_)
-        """设置回调函数为 LowStateHandler，并指定更新频率为 10Hz"""
+        # 设置回调函数为 LowStateHandler，并指定更新频率为 10Hz
         self.lowstate_subscriber.Init(self.LowStateHandler, 10)
 
     def LowStateHandler(self, msg: LowState_):
-        """处理机器人状态消息"""
+        """
+        处理接收到的机器人低级状态消息的回调函数。
+
+        Args:
+            msg (LowState_): 从机器人接收到的状态数据。
+        """
         self.low_state = msg
         self.update_count += 1
         
@@ -318,7 +337,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
             self.status_label.setStyleSheet("color: green; font-weight: bold; padding: 5px;")
 
     def _update_display(self):
-        """更新显示内容"""
+        """定时器调用的主更新函数，负责刷新表格和统计信息。"""
         if self.low_state is None:
             return
         
@@ -330,7 +349,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
             self._update_stats()
 
     def _update_table(self):
-        """更新关节数据表格"""
+        """使用最新的机器人数据更新关节表格。"""
         left_arm_joints = [info for info in self.joint_info if info[2] == "left"]
         waist_joint = [info for info in self.joint_info if info[2] == "waist"]
         right_arm_joints = [info for info in self.joint_info if info[2] == "right"]
@@ -371,7 +390,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
                 item.setBackground(QtGui.QColor("white"))  # 设置为白色背景
 
     def _save_current_data(self):
-        """保存当前数据到文件"""
+        """将当前关节数据快照保存到文本文件。"""
         if self.low_state is None:
             QtWidgets.QMessageBox.information(self.main_window, "提示", "没有数据可保存")
             return
@@ -407,7 +426,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
                 QtWidgets.QMessageBox.critical(self.main_window, "错误", f"保存失败: {e}")
 
     def _update_stats(self):
-        """更新统计信息"""
+        """更新统计信息标签的内容。"""
         current_time = time.time()
         
         # 连接时间
@@ -435,12 +454,17 @@ class ArmJointMonitorGUI(QtCore.QObject):
         max_velocity = max(abs(v) for v in self.angle_velocities.values()) if self.angle_velocities else 0
         self.max_velocity_label.setText(f"最大变化速度: {max_velocity:.2f} rad/s")
 
-    def _update_sensitivity(self, value):
-        """更新灵敏度设置"""
+    def _update_sensitivity(self, value: float):
+        """
+        当灵敏度微调框的值改变时更新标签。
+
+        Args:
+            value (float): 新的灵敏度阈值。
+        """
         self.sensitivity_label.setText(f"变化阈值: {value:.4f} rad")
 
     def _reset_stats(self):
-        """重置统计信息"""
+        """重置所有统计数据和历史记录。"""
         self.start_time = time.time()
         self.update_count = 0
         self.connection_time_label.setText("连接时间: 00:00:00")
@@ -453,50 +477,19 @@ class ArmJointMonitorGUI(QtCore.QObject):
             self.angle_velocities[joint_idx] = 0.0
 
     def _toggle_pause(self):
-        """暂停/继续更新"""
+        """切换 GUI 的暂停/继续状态。"""
         if self.pause_btn.text() == "暂停更新":
             self.pause_btn.setText("继续更新")
         else:
             self.pause_btn.setText("暂停更新")
 
-    def _save_current_data(self):
-        """保存当前数据到文件"""
-        if self.low_state is None:
-            QtWidgets.QMessageBox.information(self.main_window, "提示", "没有数据可保存")
-            return
-        
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.main_window, "保存当前关节数据", "current_joint_data.txt", "Text files (*.txt)"
-        )
-        
-        if filename:
-            try:
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(f"G-1 关节数据快照 - {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                    f.write("=" * 60 + "\n\n")
-                    
-                    for joint_idx, joint_name, group in self.joint_info:
-                        angle = self.low_state.motor_state[joint_idx].q
-                        velocity = self.angle_velocities.get(joint_idx, 0.0)
-                        # 保存时也使用两位小数
-                        f.write(f"{joint_name}: {angle:+.2f} rad (速度: {velocity:+.2f} rad/s)\n")
-                    
-                    f.write(f"\n统计信息:\n")
-                    f.write(f"数据包计数: {self.update_count}\n")
-                    f.write(f"连接时长: {time.time() - self.start_time:.1f} 秒\n")
-                    
-                    # 保存活跃关节信息
-                    sensitivity = self.sensitivity_spinbox.value()
-                    active_joints = [name for joint_idx, name, _ in self.joint_info 
-                                   if abs(self.angle_velocities.get(joint_idx, 0)) > sensitivity]
-                    f.write(f"当前活跃关节: {', '.join(active_joints)}\n")
-                
-                QtWidgets.QMessageBox.information(self.main_window, "成功", f"数据已保存到 {filename}")
-            except Exception as e:
-                QtWidgets.QMessageBox.critical(self.main_window, "错误", f"保存失败: {e}")
-
     def run(self):
-        """运行 GUI"""
+        """
+        显示 GUI 窗口并启动应用程序事件循环。
+
+        Returns:
+            int: 应用程序的退出代码。
+        """
         # 显示窗口
         self.main_window.show()
         
@@ -504,7 +497,7 @@ class ArmJointMonitorGUI(QtCore.QObject):
         return self.app.exec()
 
 def main():
-    """主函数"""
+    """程序主入口函数。"""
     print("G-1 机器人手臂关节监控器 (高灵敏度版本)")
     print("正在启动图形界面...")
     
