@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """run_g1_stack.py – 一站式脚本，启动以下功能模块:
 
 1. Unitree G-1 机器人键盘遥控 (keyboard_controller.py)
@@ -34,6 +35,8 @@ import sys
 import threading
 import time
 import subprocess
+import grp
+import os
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
@@ -66,23 +69,75 @@ def _check_device_availability() -> bool:
             print(result.stdout)
             return False
         return True
+    except FileNotFoundError:
+        # lsof 命令不存在，跳过检查
+        return True
     except Exception:
         return True  # 如果检查失败，假设设备可用
 
 
-def _reset_usb_devices() -> None:
+def _check_video_permissions() -> bool:
     """
-    重置 USB 摄像头设备。
+    检查当前用户是否有访问视频设备的权限。
+    
+    Returns:
+        bool: 如果有权限返回 True，否则返回 False。
     """
     try:
-        print("[run_g1_stack] 正在重置 USB 摄像头设备...")
-        subprocess.run(['sudo', 'modprobe', '-r', 'uvcvideo'], check=False)
-        time.sleep(1)
-        subprocess.run(['sudo', 'modprobe', 'uvcvideo'], check=False)
-        time.sleep(2)
-        print("[run_g1_stack] USB 设备重置完成")
+        # 检查用户是否在 video 组中
+        video_gid = grp.getgrnam('video').gr_gid
+        user_groups = os.getgroups()
+        
+        if video_gid in user_groups:
+            return True
+        else:
+            print("[run_g1_stack] 警告: 当前用户不在 video 组中")
+            print("建议运行: sudo usermod -a -G video $USER")
+            print("然后重新登录或重启系统")
+            return False
+            
+    except KeyError:
+        # video 组不存在
+        return True
+    except Exception:
+        # 权限检查失败，假设有权限
+        return True
+
+
+def _reset_usb_devices() -> None:
+    """
+    重置 USB 摄像头设备（用户级操作）。
+    
+    注意：某些操作可能需要管理员权限。如果遇到权限问题，
+    请考虑将用户添加到 video 组或使用 udev 规则。
+    """
+    try:
+        print("[run_g1_stack] 正在尝试重置 USB 摄像头设备...")
+        
+        # 尝试通过 RealSense API 重置设备
+        try:
+            import pyrealsense2 as rs
+            ctx = rs.context()
+            devices = ctx.query_devices()
+            for device in devices:
+                try:
+                    device.hardware_reset()
+                    print(f"[run_g1_stack] 已重置设备: {device.get_info(rs.camera_info.name)}")
+                    time.sleep(2)
+                except Exception as e:
+                    print(f"[run_g1_stack] 重置设备失败: {e}")
+            
+            print("[run_g1_stack] 设备重置尝试完成")
+            
+        except ImportError:
+            print("[run_g1_stack] pyrealsense2 未安装，跳过设备重置")
+        
     except Exception as e:
         print(f"[run_g1_stack] 重置 USB 设备失败: {e}")
+        print("提示: 如果经常遇到设备占用问题，请考虑：")
+        print("1. 将用户添加到 video 组: sudo usermod -a -G video $USER")
+        print("2. 重启系统以应用组权限变更")
+        print("3. 检查其他可能占用摄像头的程序")
 
 
 def _get_first_device(context) -> Optional[Any]:
@@ -122,6 +177,9 @@ def _rx_realsense_local(stop: threading.Event) -> None:
             depth_image = cv2.convertScaleAbs(depth_data, alpha=0.03)
             depth_image_bgr = cv2.cvtColor(depth_image, cv2.COLOR_GRAY2BGR)
             return cv2.applyColorMap(depth_image_bgr, cv2.COLORMAP_JET)
+
+        # --- 权限检查 ---
+        _check_video_permissions()
 
         # --- 设备检查和重试机制 ---
         max_retries = 3
@@ -177,6 +235,11 @@ def _rx_realsense_local(stop: threading.Event) -> None:
                         _reset_usb_devices()
                     else:
                         print("[run_g1_stack] 所有重试都失败了")
+                        print("\n故障排除建议:")
+                        print("1. 确保没有其他程序在使用摄像头")
+                        print("2. 检查 USB 连接是否稳定")
+                        print("3. 尝试重新插拔摄像头")
+                        print("4. 重启系统以清理设备状态")
                         return
                 else:
                     print(f"[run_g1_stack] RealSense 初始化失败: {e}")
@@ -228,78 +291,6 @@ def _rx_realsense_local(stop: threading.Event) -> None:
         print("[run_g1_stack] RealSense 接收器已禁用: 'pyrealsense2' 未安装。", file=sys.stderr)
     except Exception as exc:
         print(f"[run_g1_stack] 本地 RealSense 接收器失败: {exc}", file=sys.stderr)
-
-
-def _rx_realsense_gstreamer(stop: threading.Event) -> None:
-    """
-    使用 GStreamer 接收 RealSense 的 RGB 和深度图像数据。
-
-    Args:
-        stop (threading.Event): 用于控制线程停止的事件。
-    """
-    try:
-        import gi  # type: ignore
-
-        gi.require_version("Gst", "1.0")
-        gi.require_version("GstApp", "1.0")
-        from gi.repository import Gst, GstApp  # type: ignore
-
-        import numpy as np  # pylint: disable=import-error
-        import cv2  # type: ignore
-
-        RGB_PORT, DEPTH_PORT, WIDTH, HEIGHT, FPS = 5600, 5602, 640, 480, 30
-
-        def _build_sink(port: int, payload: int) -> tuple[Any, Any]:
-            pipeline = Gst.parse_launch(
-                f"udpsrc port={port} caps=application/x-rtp,media=video,encoding-name=H264,payload={payload} ! "
-                "rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=BGR ! "
-                "appsink name=sink emit-signals=true sync=false drop=true"
-            )
-            sink = pipeline.get_by_name("sink")
-            return sink, pipeline
-
-        Gst.init(None)
-
-        rgb_sink, rgb_pipe = _build_sink(RGB_PORT, 96)
-        d_sink, d_pipe = _build_sink(DEPTH_PORT, 97)
-
-        for p in (rgb_pipe, d_pipe):
-            p.set_state(Gst.State.PLAYING)
-
-        last = time.perf_counter()
-
-        while not stop.is_set():
-            sample_rgb = rgb_sink.emit("try-pull-sample", Gst.SECOND // FPS)
-            sample_d = d_sink.emit("try-pull-sample", Gst.SECOND // FPS)
-
-            if not sample_rgb or not sample_d:
-                time.sleep(0.005)
-                continue
-
-            buf_rgb = sample_rgb.get_buffer()
-            buf_d = sample_d.get_buffer()
-
-            rgb = np.frombuffer(buf_rgb.extract_dup(0, buf_rgb.get_size()), dtype=np.uint8)
-            rgb = rgb.reshape((HEIGHT, WIDTH, 3))
-
-            depth_bgr = np.frombuffer(buf_d.extract_dup(0, buf_d.get_size()), dtype=np.uint8)
-            depth_bgr = depth_bgr.reshape((HEIGHT, WIDTH, 3))
-
-            combo = cv2.hconcat([rgb, depth_bgr])
-
-            fps = 1.0 / (time.perf_counter() - last)
-            last = time.perf_counter()
-            cv2.putText(combo, f"RGB+Depth  {fps:5.1f} FPS", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-
-            with _state_lock:
-                _state["rgbd"] = combo
-
-        # Tear-down ------------------------------------------------------
-        for p in (rgb_pipe, d_pipe):
-            p.set_state(Gst.State.NULL)
-
-    except Exception as exc:  # pylint: disable=broad-except
-        print("[run_g1_stack] GStreamer RealSense receiver disabled:", exc, file=sys.stderr)
 
 
 def _rx_realsense_opencv(stop: threading.Event) -> None:
@@ -642,6 +633,27 @@ def _keyboard_thread(stop: threading.Event, iface: str):
 
 
 # ---------------------------------------------------------------------------
+# 网络配置验证
+# ---------------------------------------------------------------------------
+
+def check_network_interface(interface: str = "eth0") -> bool:
+    """检查网络接口状态"""
+    try:
+        result = subprocess.run(['ip', 'addr', 'show', interface], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"[run_g1_stack] 网络接口 {interface} 正常")
+            return True
+        else:
+            print(f"[run_g1_stack] 网络接口 {interface} 不存在或未激活")
+            print("请检查网络配置或使用 --iface 参数指定正确的接口")
+            return False
+    except Exception as e:
+        print(f"[run_g1_stack] 检查网络接口时出错: {e}")
+        return False
+
+
+# ---------------------------------------------------------------------------
 # OpenCV 窗口合成
 # ---------------------------------------------------------------------------
 
@@ -691,25 +703,51 @@ def main() -> None:
     """
     主函数，启动所有模块并显示合成的 OpenCV 窗口。
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--iface", default="eth0", help="与 Unitree G-1 连接的网络接口")
+    parser = argparse.ArgumentParser(
+        description="G1 机器人全栈控制系统",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--iface", default="eth0", 
+                      help="与 Unitree G-1 连接的网络接口")
+    parser.add_argument("--no-realsense", action="store_true",
+                      help="禁用 RealSense 摄像头")
+    parser.add_argument("--no-slam", action="store_true",
+                      help="禁用 SLAM 功能")
+    parser.add_argument("--no-robot", action="store_true",
+                      help="禁用机器人控制")
     args = parser.parse_args()
+
+    # 网络接口检查
+    if not args.no_robot:
+        if not check_network_interface(args.iface):
+            print("网络接口检查失败，机器人控制可能无法正常工作")
 
     stop = threading.Event()
 
     # 启动后台线程
-    workers = [
-        ("RealSense", threading.Thread(target=_rx_realsense, args=(stop,), daemon=True)),
-        ("SLAM", threading.Thread(target=_run_slam, args=(stop,), daemon=True)),
-        ("G1", threading.Thread(target=_keyboard_thread, args=(stop, args.iface), daemon=True)),
-    ]
+    workers = []
+    
+    if not args.no_realsense:
+        workers.append(("RealSense", threading.Thread(target=_rx_realsense, args=(stop,), daemon=True)))
+    
+    if not args.no_slam:
+        workers.append(("SLAM", threading.Thread(target=_run_slam, args=(stop,), daemon=True)))
+    
+    if not args.no_robot:
+        workers.append(("G1", threading.Thread(target=_keyboard_thread, args=(stop, args.iface), daemon=True)))
 
     for name, t in workers:
+        print(f"[run_g1_stack] 启动 {name} 线程...")
         t.start()
 
     # 显示 OpenCV 窗口
     try:
         import cv2
+
+        print("[run_g1_stack] 系统就绪，显示主窗口...")
+        print("控制说明:")
+        print("  WASD: 移动控制  QE: 侧移  Z: 阻尼模式  ESC: 紧急停止")
+        print("  窗口按键: Q 或 ESC 退出程序")
 
         while not stop.is_set():
             canvas = _compose_canvas()
@@ -720,19 +758,32 @@ def main() -> None:
             cv2.imshow("G1-Stack", canvas)
             key = cv2.waitKey(1) & 0xFF
             if key in (27, ord("q")):
+                print("[run_g1_stack] 用户请求退出...")
                 stop.set()
                 break
 
         cv2.destroyAllWindows()
 
+    except ImportError as e:
+        print(f"OpenCV 依赖缺失: {e}")
+        print("请安装: pip install opencv-python")
+    except Exception as e:
+        print(f"显示窗口时出错: {e}")
     finally:
+        print("[run_g1_stack] 正在停止所有线程...")
         stop.set()
         for name, t in workers:
-            t.join(timeout=1.0)
+            print(f"[run_g1_stack] 等待 {name} 线程结束...")
+            t.join(timeout=2.0)
+            if t.is_alive():
+                print(f"[run_g1_stack] 警告: {name} 线程未能及时停止")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        pass
+        print("\n[run_g1_stack] 接收到中断信号，正在退出...")
+    except Exception as e:
+        print(f"[run_g1_stack] 程序异常退出: {e}")
+        sys.exit(1)

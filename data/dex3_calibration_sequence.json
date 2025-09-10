@@ -1,0 +1,41 @@
+{
+  "description": "Dex3 校准序列，用于验证关节运动范围",
+  "sequence": [
+    {
+      "step": 1,
+      "pose": "rest",
+      "duration": 2.0,
+      "description": "初始休息位置"
+    },
+    {
+      "step": 2,
+      "pose": "open",
+      "duration": 3.0,
+      "description": "完全打开测试"
+    },
+    {
+      "step": 3,
+      "pose": "middle",
+      "duration": 2.0,
+      "description": "中间位置"
+    },
+    {
+      "step": 4,
+      "pose": "closed",
+      "duration": 3.0,
+      "description": "完全闭合测试"
+    },
+    {
+      "step": 5,
+      "pose": "pinch",
+      "duration": 2.0,
+      "description": "精确抓取测试"
+    },
+    {
+      "step": 6,
+      "pose": "rest",
+      "duration": 2.0,
+      "description": "返回休息位置"
+    }
+  ]
+}

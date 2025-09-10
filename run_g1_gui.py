@@ -169,7 +169,7 @@ def _rx_battery(stop: "threading.Event", iface: str):
 
     try:
         import time
-        from unitree_sdk2_python.core.channel import ChannelSubscriber, ChannelFactoryInitialize
+        from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
 
         # 将 SOC 写入共享状态的帮助函数
         def _publish(soc_val: int | None = None, voltage: float | None = None):
@@ -190,7 +190,7 @@ def _rx_battery(stop: "threading.Event", iface: str):
         # 1) Unitree Go/G1 – LowState
         ok = False
         try:
-            from unitree_sdk2_python.idl.unitree_go.msg.dds_ import LowState_
+            from unitree_sdk2py.idl.unitree_go.msg.dds_ import LowState_
 
             def _cb_go(msg: LowState_):
                 soc_val = getattr(getattr(msg, 'bms_state', None), 'soc', None)
@@ -206,7 +206,7 @@ def _rx_battery(stop: "threading.Event", iface: str):
         # 2) 人形机器人 HG – BmsState 主题
         if not ok:
             try:
-                from unitree_sdk2_python.idl.unitree_hg.msg.dds_ import BmsState_
+                from unitree_sdk2py.idl.unitree_hg.msg.dds_ import BmsState_
 
                 def _cb_hg(msg: BmsState_):
                     _publish(int(msg.soc))
@@ -381,7 +381,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
         iface: str,
         ground_clear_in: float,
         *,
-        hand: str = "left",
+        hand: str = "right",
         grip_force: float | None = None,
     ):
         """
@@ -391,700 +391,510 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             iface (str): 连接到机器人的网络接口。
             ground_clear_in (float): 在检测到的地平面上方的间隙（以**英寸**为单位），
                 超过该间隙的点被视为障碍物（转发给 SLAM 障碍物过滤器）。
-            hand (str): 哪个 Dex3 手物理连接到机器人。默认为 ``"left"`` 以保留原始行为。
+            hand (str): 哪个 Dex3 手物理连接到机器人。默认为 ``"right"`` 以保留原始行为。
             grip_force (float | None): 在连续*抓取*模式下应用的可选前馈扭矩（约 **N·m**）。
         """
-
         super().__init__()
+        
+        # 存储配置参数
+        self._store_config_parameters(iface, ground_clear_in, hand, grip_force)
+        
+        # 初始化核心组件
+        self._init_qt_application()
+        self._init_ui_components()
+        self._init_control_components()
+        self._init_robot_connections(iface, hand)
+        
+        # 启动后台线程和定时器
+        self._start_background_threads(iface)
+        self._configure_event_handling()
+        
+        # 完成初始化
+        self._finalize_initialization()
 
-        from PySide6 import QtWidgets, QtGui  # type: ignore
-
-        # 在检测到的地平面上方，一个点被视为障碍物之前的间隙（米）。
+    def _store_config_parameters(self, iface: str, ground_clear_in: float, hand: str, grip_force: float | None):
+        """存储配置参数到实例变量。"""
+        self._iface = iface
         self._clear_m = ground_clear_in * 0.0254  # 英寸 → 米
-
-        # 存储 CLI 抓取力，以便构造函数的下半部分
-        # 即使在特定手部控制属性初始化之前也能读取它。
+        self._hand_config = hand
         self._cli_grip_force = grip_force if grip_force is not None else 0.3
-        import pyqtgraph.opengl as gl  # type: ignore
 
-        self.app = QtWidgets.QApplication(sys.argv)
-
-        # ------------------------------------------------------------------
-        #  使 Ctrl-C (SIGINT) 立即关闭应用程序。
-        # ------------------------------------------------------------------
+    def _init_qt_application(self):
+        """初始化 Qt 应用程序和信号处理。"""
+        from PySide6 import QtWidgets
         import signal
-
+        
+        self.app = QtWidgets.QApplication(sys.argv)
+        
+        # 配置 Ctrl-C 信号处理
         try:
             signal.signal(signal.SIGINT, lambda *_: self.app.quit())
         except Exception:
             pass
 
-        # ---------------- 主控件 ----------------------------------
+    def _init_ui_components(self):
+        """初始化用户界面组件。"""
+        self._init_main_widgets()
+        self._init_layout()
+        self._init_status_controls()
+        self._init_visual_feedback()
+        self._init_timers()
+
+    def _init_main_widgets(self):
+        """初始化主要 UI 控件。"""
+        from PySide6 import QtWidgets, QtCore
+        import pyqtgraph as pg
+        import pyqtgraph.opengl as gl
+        
+        # RGB/深度图像标签
         self.rgb_lbl = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
         self.depth_lbl = QtWidgets.QLabel(alignment=QtCore.Qt.AlignCenter)
-
-        # 不裁剪传入的 640×480 RealSense 流 – 显示
-        # *完整*图像（带黑边），以便用户始终看到整个帧。
-        # **320 px** 的最小尺寸保持了原始的紧凑布局，
-        # 同时在屏幕空间有限时仍允许窗口缩小。
-        # 稍后将缩放像素图以适应当前的
-        # 控件大小，同时保持宽高比，这会导致
-        # 出现黑边而不是切掉顶部/底部。
-
-        self.rgb_lbl.setMinimumSize(640, 320)
-        self.depth_lbl.setMinimumSize(640, 320)
-
-        # 明确设置黑色背景，以便黑边与
-        # UI 的其余部分很好地融合（否则裁剪区域将显示为
-        # 默认颜色的 QWidget 背景）。
-        for _lbl in (self.rgb_lbl, self.depth_lbl):
-            _lbl.setStyleSheet("background-color: black")
-
-        # 2D 占据栅格预览 -------------------------------------------------
-        # 用 pyqtgraph ImageItem 替换静态 QLabel，并将其放入
-        # 交互式 ViewBox 中，以便用户可以自由缩放/平移鸟瞰图。
-
-        import pyqtgraph as pg  # type: ignore
-
-        self.map_view = pg.GraphicsLayoutWidget()  # 作用类似于常规 QWidget
+        
+        # 设置最小尺寸和背景样式
+        for lbl in (self.rgb_lbl, self.depth_lbl):
+            lbl.setMinimumSize(640, 320)
+            lbl.setStyleSheet("background-color: black")
+        
+        # 2D 地图视图
+        self.map_view = pg.GraphicsLayoutWidget()
         self.map_view.setMinimumSize(640, 320)
-
-        # 使用专用的 ViewBox，以便我们可以锁定宽高比，同时仍然
-        # 允许鼠标交互（滚轮 = 缩放，拖动 = 平移）。
         self._map_vb = self.map_view.addViewBox(lockAspect=True, enableMouse=True)
         self._map_vb.setMenuEnabled(False)
-        self._map_vb.invertY(True)  # 匹配常规图像坐标
-
-        # ImageItem 将在每一帧中使用由 _update_2d_map() 生成的
-        # 新渲染的占据栅格画布进行更新。
+        self._map_vb.invertY(True)
         self._map_img = pg.ImageItem()
         self._map_vb.addItem(self._map_img)
-
-        # ------------------------------------------------------------------
-        #  路径规划状态
-        # ------------------------------------------------------------------
-
-        # 最新的二进制占据栅格（True = 障碍物），图像坐标。
-        self._occ_map: "np.ndarray | None" = None  # type: ignore[name-defined]
-
-        # 元数据 (min_x, min_y, scale)，用于在世界坐标 ↔ 图像像素之间映射。
-        self._map_meta: tuple[float, float, float] | None = None
-
-        # 上次规划的路径，作为像素位置 (x, y) 的列表 – 图像坐标。
-        self._path_px: list[tuple[int, int]] | None = None
-
-        # 将场景图上的鼠标点击转发到我们的处理器，以便用户可以
-        # 直接在 2D 地图上选择导航目标。该信号
-        # 对 GraphicsView 内的*所有*点击都会发出，因此我们
-        # 将其转换为 ViewBox 坐标并忽略
-        # 有效 0 … 479 范围之外的位置。
-        self.map_view.scene().sigMouseClicked.connect(self._on_map_click)
-
-        # 用于点云的 GL 查看器
+        
+        # 3D 点云视图
         self.gl_view = gl.GLViewWidget()
-        # 从稍远一点的地方开始，以便整个地图都能在视图中显示。
         self.gl_view.opts["distance"] = 30
         self.gl_view.setCameraPosition(distance=30, elevation=20, azimuth=45)
-        # 确保 GL 面板以合理的宽度启动，这样用户就
-        # 不必在每次启动时手动调整分割器的大小。
         self.gl_view.setMinimumWidth(640)
-
-        # 散点图项 – 增量更新
         self._scatter = gl.GLScatterPlotItem()
         self.gl_view.addItem(self._scatter)
-
-        # 当前持有代表机器人位姿的 3 个彩色轴线的列表。
-        # 每当从 SLAM 线程接收到新位姿时，我们都会移除并重建它们。
         self._pose_items: list[gl.GLLinePlotItem] = []
 
-        # -------- 布局 -----------------------------------------------
+    def _init_layout(self):
+        """设置主窗口布局。"""
+        from PySide6 import QtWidgets
+        
+        # 创建分割器布局
         splitter = QtWidgets.QSplitter()
         left = QtWidgets.QWidget()
         v = QtWidgets.QVBoxLayout(left)
+        
         v.addWidget(self.rgb_lbl)
         v.addWidget(self.depth_lbl)
         v.addWidget(self.map_view)
+        
         splitter.addWidget(left)
         splitter.addWidget(self.gl_view)
         splitter.setStretchFactor(1, 2)
-        # 初始化分割器大小 (左, 右)
         splitter.setSizes([640, 640])
-
+        
+        # 主窗口配置
         self.win = QtWidgets.QMainWindow()
         self.win.setWindowTitle("G1-Stack")
         self.win.setCentralWidget(splitter)
-
-        # 给主窗口一个初始大小，可以舒适地显示
-        # RGB/深度堆栈 (640 px) 和 3D 视图 (另外 640 px)。
         self.win.resize(1600, 760)
 
+    def _init_status_controls(self):
+        """初始化状态栏和控制按钮。"""
+        from PySide6 import QtWidgets
+        
+        # 状态标签
         self.status = QtWidgets.QLabel()
         self.win.statusBar().addWidget(self.status)
-
-        # ------------------------------------------------------------------
-        #  用户控件 – 卸力手臂 / 腰部回中
-        # ------------------------------------------------------------------
-
+        
+        # 卸力按钮
         self._btn_damp = QtWidgets.QPushButton("卸力手臂 & 腰部回中")
         self._btn_damp.setToolTip("将上半身切换到被动模式，并将腰部设置为 0 rad")
-        self._btn_damp.clicked.connect(self._on_damp_pressed)  # type: ignore[arg-type]
+        self._btn_damp.clicked.connect(self._on_damp_pressed)
         self.win.statusBar().addPermanentWidget(self._btn_damp)
-
-        # ------------------------------------------------------------------
-        #  手臂选择器 – 左 / 右
-        # ------------------------------------------------------------------
-
+        
+        # 手臂选择器
         self._arm_selector = QtWidgets.QComboBox()
         self._arm_selector.addItems(["左臂", "右臂"])
-        self._arm_selector.setCurrentIndex(0)  # 默认 → 左臂
+        self._arm_selector.setCurrentIndex(0)
         self._arm_selector.setToolTip("选择要控制和运行推理的手臂")
-
-        # 保留一个易于访问的文本标志，以便其他帮助程序可以查询
-        # 活动侧，而无需接触 UI 元素。
-        self._active_arm: str = "left"
-
-        def _on_sel_changed(idx: int):
-            self._active_arm = "left" if idx == 0 else "right"
-            try:
-                self._configure_arm_variables()
-            except Exception as exc:
-                print("[run_g1_gui] 重新配置手臂失败:", exc, file=sys.stderr)
-
-        self._arm_selector.currentIndexChanged.connect(_on_sel_changed)  # type: ignore[arg-type]
+        self._arm_selector.currentIndexChanged.connect(self._on_arm_selection_changed)
         self.win.statusBar().addPermanentWidget(self._arm_selector)
+        
+        self._active_arm: str = "right"
 
-        # ------------------------------------------------------------------
-        #  按键的视觉反馈
-        # ------------------------------------------------------------------
+    def _on_arm_selection_changed(self, index: int):
+        """处理手臂选择器的变化事件。"""
+        try:
+            # 更新活动手臂
+            self._active_arm = "left" if index == 0 else "right"
+            
+            # 重新配置手臂变量
+            self._configure_arm_variables()
+            
+            print(f"[run_g1_gui] 已切换到 {self._active_arm} 臂控制")
+            
+        except Exception as exc:
+            print(f"[run_g1_gui] 手臂切换失败: {exc}", file=sys.stderr)
 
-        # 左上角的一个小型半透明覆盖层以易于查看的方式
-        # 列出所有当前按下的控制键，以便用户
-        # 立即确认其键盘输入已被应用程序识别。
-
-        # 使覆盖层成为*中央控件*的子控件，以保证
-        # 它绘制在正常内容（分割器、GL 视图等）*之上*，即使在
-        # 某些平台上 QMainWindow 的直接子控件可能被
-        # 中央控件遮挡。
-
-        # 覆盖层位于 GL 查看器*内部*，因此即使在用户调整窗口大小
-        # 或摆弄分割器时，它也保持附着在该面板上。
-
+    def _on_fade_finished(self):
+        """按键覆盖层淡出动画完成时的回调。"""
+        if self._fade_anim.state() != QtCore.QAbstractAnimation.Running:
+            self._keys_lbl.setText("–")
+            self._key_overlay.adjustSize()
+    def _init_visual_feedback(self):
+        """初始化按键视觉反馈覆盖层。"""
+        from PySide6 import QtWidgets, QtCore
+        
+        # 按键覆盖层
         self._key_overlay = QtWidgets.QWidget(self.gl_view)
         self._key_overlay.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
         self._key_overlay.move(10, 10)
-
-        # 容器样式提供通用的半透明背景。
         self._key_overlay.setStyleSheet(
             "background-color: rgba(0, 0, 0, 150);"
             "border-radius: 6px;"
         )
-
-        _lay = QtWidgets.QVBoxLayout(self._key_overlay)
-        _lay.setContentsMargins(8, 6, 8, 6)
-        _lay.setSpacing(0)
-
-        # 标题 – 始终保持完全不透明。
+        
+        # 覆盖层布局
+        lay = QtWidgets.QVBoxLayout(self._key_overlay)
+        lay.setContentsMargins(8, 6, 8, 6)
+        lay.setSpacing(0)
+        
+        # 标题和按键标签
         self._header_lbl = QtWidgets.QLabel("按键输入:")
         self._header_lbl.setStyleSheet(
             "color: #ffff00; font: 12pt 'Consolas', 'Monaco', 'Courier New', monospace;"
         )
-        _lay.addWidget(self._header_lbl)
-
-        # 动态按键列表标签。
+        lay.addWidget(self._header_lbl)
+        
         self._keys_lbl = QtWidgets.QLabel("–")
         self._keys_lbl.setStyleSheet(
             "color: #ffff00; font: bold 24pt 'Consolas', 'Monaco', 'Courier New', monospace;"
         )
-        _lay.addWidget(self._keys_lbl)
-
+        lay.addWidget(self._keys_lbl)
+        
         self._key_overlay.adjustSize()
         self._key_overlay.show()
-
-        # 仅应用于按键标签的透明度效果和淡出动画。
+        
+        # 透明度动画
         self._keys_opacity = QtWidgets.QGraphicsOpacityEffect(self._keys_lbl)
         self._keys_lbl.setGraphicsEffect(self._keys_opacity)
-
         self._fade_anim = QtCore.QPropertyAnimation(self._keys_opacity, b"opacity", self)
-        self._fade_anim.setDuration(600)  # ms
+        self._fade_anim.setDuration(600)
+        self._fade_anim.finished.connect(self._on_fade_finished)
 
-        def _on_fade_finished():
-            # 为下一个周期重置。
-            self._keys_opacity.setOpacity(1.0)
-            self._keys_lbl.setText("–")
-            self._key_overlay.adjustSize()
-
-        self._fade_anim.finished.connect(_on_fade_finished)  # type: ignore[arg-type]
-
-        # ---------------- 定时器 ---------------------------------------
+    def _init_timers(self):
+        """初始化定时器。"""
+        from PySide6 import QtCore
+        
+        # 主刷新定时器
         self._refresh = QtCore.QTimer()
-        self._refresh.setInterval(30)  # ms
+        self._refresh.setInterval(30)
         self._refresh.timeout.connect(self._on_tick)
         self._refresh.start()
-
-
-        # ------------------------------------------------------------------
-        #  遥控操作状态 (Qt 原生处理)
-        # ------------------------------------------------------------------
-
-        self._stop_evt = threading.Event()
-
-        # 按下的键集合，保存 Qt.Key 枚举 / 小写字符
-        self._pressed: set[object] = set()
-
-        # 将发送给机器人的当前目标速度
-        self._vx = 0.0
-        self._vy = 0.0
-        self._omega = 0.0
-
-        # 跟踪当前平衡模式 (0 – 静态站立, 1 – 连续步态)。
-        # 我们将其初始化为 -1，以便在知道用户是否在命令运动后，
-        # 第一次调用总是设置一个明确的模式。
-        self._bal_mode: int = -1
-
-        # 尝试启动 Unitree G-1 以便我们实际可以驾驶 – 捕获失败，
-        # 以便 GUI 仍然可以在只想观看流的机器上运行。
-        try:
-            from hanger_boot_sequence import hanger_boot_sequence  # type: ignore
-
-            self._bot = hanger_boot_sequence(iface=iface)
-        except Exception as exc:  # pylint: disable=broad-except
-            print("[run_g1_gui] 遥控操作已禁用:", exc, file=sys.stderr)
-            self._bot = None
-
-        # 以 10 Hz 更新速度并发送 Move 的定时器
+        
+        # 驱动控制定时器
         self._drive_timer = QtCore.QTimer()
-        self._drive_timer.setInterval(100)  # ms  (10 Hz)
+        self._drive_timer.setInterval(100)
         self._drive_timer.timeout.connect(self._on_drive_tick)
         self._drive_timer.start()
 
-        # ------------------------------------------------------------------
-        #  右臂启动序列
-        # ------------------------------------------------------------------
+    def _init_control_components(self):
+        """初始化控制状态变量。"""
+        self._stop_evt = threading.Event()
+        self._pressed: set[object] = set()
+        
+        # 速度控制状态
+        self._vx = 0.0
+        self._vy = 0.0
+        self._omega = 0.0
+        self._bal_mode: int = -1
+        
+        # 路径规划状态
+        self._occ_map: "np.ndarray | None" = None
+        self._map_meta: tuple[float, float, float] | None = None
+        self._path_px: list[tuple[int, int]] | None = None
+        
+        # 连接地图点击信号
+        self.map_view.scene().sigMouseClicked.connect(self._on_map_click)
 
-        # ------------------------------------------------------------------
-        #  手臂控制 (左 *或* 右)
-        # ------------------------------------------------------------------
-        #
-        # Unitree SDK 公开了一个专用的实时 DDS 主题 (``rt/arm_sdk``)，
-        # 它接受*两个*手臂的 LowCmd 消息。历史上，GUI
-        # 只驱动**右**臂（关节 ID 22 … 28）。随着最近
-        # 为**左**臂（ID 15 … 21）添加了模型，我们现在使
-        # 受控侧可配置，以便用户可以直接
-        # 在应用程序内切换。
-        #
-        # 状态栏中的一个小组合框在运行时选择活动手臂
-        # （默认为*左臂*）。所有后续逻辑 – 位姿序列、
-        # 平滑斜坡生成器、机器学习推理、卸力按钮 – 都引用
-        # 通用的 *self._arm_joint_idx* 列表，以便没有代码路径
-        # 再局限于硬编码的关节索引集。
+    def _init_robot_connections(self, iface: str, hand: str):
+        """初始化机器人连接。"""
+        self._init_robot_control(iface)
+        self._init_arm_control()
+        self._init_hand_control(hand, iface)
 
-        self._arm_pub = None  # type: ignore[assignment]
+    def _init_robot_control(self, iface: str):
+        """初始化机器人基础控制连接。"""
         try:
-            from unitree_sdk2_python.core.channel import ChannelPublisher
-            from unitree_sdk2_python.idl.unitree_hg.msg.dds_ import LowCmd_
-            from unitree_sdk2_python.idl.default import unitree_hg_msg_dds__LowCmd_
-            from unitree_sdk2_python.utils.crc import CRC
+            from hanger_boot_sequence import hanger_boot_sequence
+            self._bot = hanger_boot_sequence(iface=iface)
+        except Exception as exc:
+            print("[run_g1_gui] 遥控操作已禁用:", exc, file=sys.stderr)
+            self._bot = None
 
-            # ---------------- 关节索引 -----------------------------
-            _WAIST_YAW_IDX = 12
-
-            # --------------------------------------------------------------
-            #  每臂关节索引定义
-            # --------------------------------------------------------------
-
-            _LEFT_IDX = {idx: 0 for idx in range(15, 22)}
-            _RIGHT_IDX = {idx: 0 for idx in range(22, 29)}
-
-            _ARM_IDX = _LEFT_IDX if self._active_arm == "left" else _RIGHT_IDX
-
-            # 存储帮助程序的索引 (例如卸力按钮)
-            self._arm_joint_idx: list[int] = list(_ARM_IDX.keys())
-            self._waist_idx: int = _WAIST_YAW_IDX
-
-            _NOT_USED_IDX = 29  # 当 q = 1 时启用 arm_sdk (根据 Unitree 文档)
-
-            self._crc = CRC()
-
-            # 我们在每个周期更新的持久完整消息。
-            self._arm_cmd = unitree_hg_msg_dds__LowCmd_()
-            self._arm_cmd.motor_cmd[_NOT_USED_IDX].q = 1
-
-            # ------------------------------------------------------------------
-            #  目标位姿序列 (rad)
-            # ------------------------------------------------------------------
-
-            # 帮助程序：每个位姿的 (joint_idx, target_q) 列表。
-            if self._active_arm == "right":
-                # 两步启动序列 (现有行为)
-                self._pose_seq: list[list[tuple[int, float]]] = [
-                    [
-                        (_WAIST_YAW_IDX, 0.0),
-                        (22, -0.023),  # 肩部俯仰
-                        (23, -0.225),  # 肩部横滚
-                        (24, +0.502),  # 肩部偏航
-                        (25, +1.317),  # 肘部
-                        (26, +0.185),  # 手腕俯仰
-                        (27, +0.125),  # 手腕横滚
-                        (28, -0.182),  # 手腕偏航
-                    ],
-                    [
-                        (_WAIST_YAW_IDX, 0.0),
-                        (22, +0.087),
-                        (23, -0.271),
-                        (24, +0.323),
-                        (25, +0.691),
-                        (26, +0.240),
-                        (27, -0.771),
-                        (28, -0.176),
-                    ],
-                ]
-            else:
-                # 左臂的单步初始位姿 (提供的值)
-                self._pose_seq = [
-                    [
-                        (_WAIST_YAW_IDX, 0.0),
-                        (15, +0.211),  # 肩部俯仰
-                        (16, +0.181),  # 肩部横滚
-                        (17, -0.284),  # 肩部偏航
-                        (18, +0.672),  # 肘部
-                        (19, -0.379),  # 手腕横滚
-                        (20, -0.852),  # 手腕俯仰
-                        (21, -0.019),  # 手腕偏航
-                    ]
-                ]
-
-            # ------------------------------------------------------------------
-            # 每关节命令状态
-            # ------------------------------------------------------------------
-
-            # 内部字典 {idx: commanded_q} 用于构建平滑斜坡。
-            self._cmd_q: dict[int, float] = {idx: 0.0 for idx in _ARM_IDX}
-            self._cmd_q[_WAIST_YAW_IDX] = 0.0
-
-            # ------------------------------------------------------------------
-            #  实时反馈 – 订阅 LowState 以便我们知道*当前*
-            #  关节角度。用真实角度初始化命令字典
-            #  可以避免在高 kp 的刚性位置控制启用时，
-            #  当目标远离当前配置时发生的突然“跳变”。
-            # ------------------------------------------------------------------
-
-            self._joint_cur: dict[int, float] = {}
-
-
-            self._ls_sub = None
-
-            # 延迟的 LowState 订阅，以便 GUI 在启动期间永远不会阻塞。
-            # 线程尝试一次打开订阅者，如果中间件不可用，
-            # 则静默放弃。
-
-            def _init_ls_sub():
-                """
-                订阅 *rt/lowstate*，使用当前机器人上可用的任何 Unitree IDL
-                (HG – 人形，GO – 四足)。
-
-                旧版固件在不同命名空间下发布完全相同的 LowState
-                消息。因此，我们尝试两种变体，并静默地继续使用
-                第一个成功的变体，以便 GUI 在所有平台上继续工作，
-                无需用户干预。
-                """
-
-                from unitree_sdk2_python.core.channel import ChannelSubscriber
-
-                # 按优先顺序尝试的候选 IDL 路径列表。
-                _candidates = [
-                    "unitree_sdk2_python.idl.unitree_hg.msg.dds_.LowState_",
-                    "unitree_sdk2_python.idl.unitree_go.msg.dds_.LowState_",
-                ]
-
-                for dotted in _candidates:
-                    try:
-                        mod_path, cls_name = dotted.rsplit(".", 1)
-                        mod = __import__(mod_path, fromlist=[cls_name])
-                        LowState_ = getattr(mod, cls_name)
-
-                        def _ls_cb(msg):
-                            # 只抓取我们主动命令的关节，以便
-                            # 反馈字典始终携带所选手臂的
-                            # 最新测量角度。
-                            for j_idx in (*self._arm_joint_idx, _WAIST_YAW_IDX):
-                                try:
-                                    self._joint_cur[j_idx] = msg.motor_state[j_idx].q
-                                except Exception:
-                                    pass
-
-                        sub = ChannelSubscriber("rt/lowstate", LowState_)
-
-                        # 尝试用小超时初始化 – 如果 DDS 堆栈
-                        # 不可用，此调用可能会阻塞数秒。
-                        sub.Init(_ls_cb, 200)
-
-                        # 保留引用，以免 GC 将其杀死。
-                        self._ls_sub = sub
-                        return  # 成功 – 无需尝试更多变体
-                    except Exception:
-                        continue  # 尝试下一个命名空间
-
-                # 如果所有尝试都失败，只需禁用反馈 –
-                # GUI 的其余部分（和手臂序列）仍将工作，
-                # 尽管没有基于真实关节角度的无跳变初始化。
-
-            threading.Thread(target=_init_ls_sub, daemon=True).start()
-
-            # 标志，以便 _on_arm_tick 可以懒惰地复制第一个反馈样本。
-            self._initialised_from_state = False
-
-            # 序列进度跟踪器。
-            self._seq_idx = 0  # 我们正在向哪个位姿移动 (0 / 1)
-            self._SEQ_EPS = 0.01  # rad 容差，认为关节“已到达”
-            self._STEP = 0.02      # rad / 20 ms tick (~1.1°) – 产生缓慢滑动
-
-            # DDS 发布者
+    def _init_arm_control(self):
+        """初始化手臂控制系统。"""
+        self._arm_pub = None
+        
+        try:
+            from unitree_sdk2py.core.channel import ChannelPublisher
+            from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_
+            from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
+            from unitree_sdk2py.utils.crc import CRC
+            
+            # 初始化手臂控制变量
+            self._init_arm_variables()
+            
+            # 创建发布者和定时器
             self._arm_pub = ChannelPublisher("rt/arm_sdk", LowCmd_)
             self._arm_pub.Init()
-
-            # 50 Hz 的定时器，应用斜坡。
+            
             self._arm_timer = QtCore.QTimer()
-            self._arm_timer.setInterval(20)  # ms
+            self._arm_timer.setInterval(20)
             self._arm_timer.timeout.connect(self._on_arm_tick)
             self._arm_timer.start()
-
-            # --------------------------------------------------------------
-            #  启动时准备*两个*手臂
-            # --------------------------------------------------------------
-            # 历史上，GUI 只初始化**选定**的手臂
-            # （默认 → 右），而另一侧完全保持
-            # 被动。我们现在将*两个*手臂都移动到一个舒适的待机
-            # 姿势，以便操作员可以立即控制
-            # 任何一个，而无需单独的预热程序。
-            #
-            # 活动手臂遵循其由 *_on_arm_tick* 处理的常规平滑斜坡。
-            # 对于**另一只**手臂，我们发布一个*一次性*的
-            # LowCmd，将其关节设置为最终目标位姿，并具有
-            # 中等刚度。后续的定时器滴答保持这些值
-            # 不变，因为 *_on_arm_tick* 只接触
-            # *self._cmd_q* 中列出的关节（即当前选定的一侧）。这意味着
-            # 非活动手臂保持位置，但不消耗任何
-            # 额外的带宽或 CPU 时间。
-
-            def _apply_pose_once(pose: list[tuple[int, float]]):
-                for j_idx, q_val in pose:
-                    mc = self._arm_cmd.motor_cmd[j_idx]
-                    mc.q = q_val
-                    mc.dq = 0.0
-                    mc.tau = 0.0
-                    mc.kp = 60.0
-                    mc.kd = 1.5
-
-            # 为*另一只*手臂构建准备位姿（与 _active_arm 相反）。
-            if self._active_arm == "left":
-                _ready_other = [
-                    (22, +0.087),  # 肩部俯仰
-                    (23, -0.271),  # 肩部横滚
-                    (24, +0.323),  # 肩部偏航
-                    (25, +0.691),  # 肘部
-                    (26, +0.240),  # 手腕俯仰
-                    (27, -0.771),  # 手腕横滚
-                    (28, -0.176),  # 手腕偏航
-                ]
-            else:  # 活动 → 右，因此准备*左*臂
-                _ready_other = [
-                    (15, +0.211),  # 肩部俯仰
-                    (16, +0.181),  # 肩部横滚
-                    (17, -0.284),  # 肩部偏航
-                    (18, +0.672),  # 肘部
-                    (19, -0.379),  # 手腕横滚
-                    (20, -0.852),  # 手腕俯仰
-                    (21, -0.019),  # 手腕偏航
-                ]
-
-            _apply_pose_once(_ready_other)
-
-            # 重新计算 CRC 并立即传输，以便机器人在
-            # 第一个 50 Hz 定时器滴答发生之前开始保持位姿。
-            self._arm_cmd.crc = self._crc.Crc(self._arm_cmd)
-            try:
-                self._arm_pub.Write(self._arm_cmd)
-            except Exception:
-                pass
-
-        except Exception as exc:  # pylint: disable=broad-except
+            
+            # 启动 LowState 订阅
+            self._start_lowstate_subscription()
+            
+            # 准备非活动手臂
+            self._prepare_inactive_arm()
+            
+        except Exception as exc:
             print("[run_g1_gui] 手臂控制已禁用:", exc, file=sys.stderr)
 
-        # ------------------------------------------------------------------
-        #  Dex3 右手控制
-        # ------------------------------------------------------------------
+    def _init_arm_variables(self):
+        """初始化手臂控制变量。"""
+        from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
+        from unitree_sdk2py.utils.crc import CRC
+        
+        # 关节索引配置
+        self._WAIST_YAW_IDX = 12
+        self._LEFT_IDX = {idx: 0 for idx in range(15, 22)}
+        self._RIGHT_IDX = {idx: 0 for idx in range(22, 29)}
+        
+        # 初始化关节状态
+        self._arm_joint_idx: list[int] = []
+        self._waist_idx: int = self._WAIST_YAW_IDX
+        self._cmd_q: dict[int, float] = {}
+        self._joint_cur: dict[int, float] = {}
+        
+        # 控制参数 - 减小步长以实现更慢的运动
+        self._SEQ_EPS = 0.01
+        self._STEP = 0.008  # 从 0.02 减小到 0.008，使运动速度降低约 60%
+        self._seq_idx = 0
+        self._initialised_from_state = False
+        
+        # DDS 消息和 CRC
+        self._crc = CRC()
+        self._arm_cmd = unitree_hg_msg_dds__LowCmd_()
+        self._arm_cmd.motor_cmd[29].q = 1  # 启用 arm_sdk
+        
+        # 位姿序列
+        self._pose_seq: list[list[tuple[int, float]]] = []
 
+    def _init_hand_control(self, hand: str, iface: str):
+        """初始化 Dex3 手部控制。"""
         self._dex3 = None
+        
         try:
-            from unitree_sdk2_python.dex3 import Dex3Client
-
-            # ------------------------------------------------------------------
-            #  尝试连接到请求的手。如果显式 NIC
-            #  名称失败（当本地接口与
-            #  硬编码的默认值不同时很常见），则回退到 SDK 的内置*自动*
-            #  检测，方法是使用 ``interface=None`` 重试。这反映了
-            #  *handdev_gui.py* 使用的弹性方法，并大大减少了
-            #  最终得到 *self._dex3 = None* 的机会，这将
-            #  静默禁用整个抓取逻辑。
-            # ------------------------------------------------------------------
-
-            try:
-                self._dex3 = Dex3Client(hand=hand, interface=iface)
-            except Exception as exc:  # pylint: disable=broad-except
-                print(
-                    f"[run_g1_gui] 在接口 '{iface}' 上的 Dex3 连接失败:",
-                    exc,
-                    file=sys.stderr,
-                )
-
-                try:
-                    self._dex3 = Dex3Client(hand=hand, interface=None)
-                    print("[run_g1_gui] Dex3 通过自动检测的 NIC 连接。")
-                except Exception as exc2:  # pylint: disable=broad-except
-                    print("[run_g1_gui] Dex3 自动检测失败:", exc2, file=sys.stderr)
-                    self._dex3 = None
-
-            # ------------------------------------------------------------------
-            #  加载可选的手部姿势 CSV (打开 / 中间 / 关闭)
-            # ------------------------------------------------------------------
-
-            self._hand_poses: dict[str, list[float]] = {}
-            try:
-                import csv
-
-                csv_path = Path("data/hand_states.csv")
-                if csv_path.exists():
-                    with csv_path.open("r", newline="") as fp:
-                        rdr = csv.DictReader(fp)
-                        for row in rdr:
-                            label = row.get("label")
-                            if label:
-                                try:
-                                    vals = [float(row[f"joint{i}"]) for i in range(7)]
-                                    self._hand_poses[label.lower()] = vals
-                                except Exception:
-                                    pass
-            except Exception as exc:  # pylint: disable=broad-except
-                print("[run_g1_gui] 无法加载 hand_states.csv:", exc, file=sys.stderr)
-
-            # ------------------------------------------------------------------
-            #  手部运动斜坡帮助程序
-            # ------------------------------------------------------------------
-
-            self._hand_cmd_q: list[float] = [0.0] * 7
-            self._hand_pose_seq: list[list[float]] = []
-            self._hand_seq_idx: int = 0
-            self._HAND_STEP = 0.1  # rad / tick (≈5.7°)
-
-            self._hand_timer = QtCore.QTimer()
-            self._hand_timer.setInterval(20)  # ms – 50 Hz
-            self._hand_timer.timeout.connect(self._on_hand_tick)
-            self._hand_timer.start()
-
-            # 简化的打开/关闭关键姿势 (用户请求)
-            # 当使用 p / o 键时，这些会覆盖任何 CSV 内容。
-            self._simple_open_pose = [
-                -0.15717165172100067,
-                -0.41322529315948486,
-                0.02846403606235981,
-                0.17782948911190033,
-                -0.025226416066288948,
-                0.17983606457710266,
-                -0.027690349146723747,
-            ]
-
-            self._simple_closed_pose = [
-                0.07452802360057831,
-                0.9478388428688049,
-                1.766921877861023,
-                -1.4442411661148071,
-                -1.4384468793869019,
-                -1.5298594236373901,
-                -1.4153316020965576,
-            ]
-
-            # 当前高级目标姿势 (总是 7 个元素)。
-            self._hand_target: list[float] = list(self._simple_open_pose)
-            # 自适应和连续抓取标志
-            # 模式:
-            #   idle       – 无运动，保持当前位置
-            #   closing    – 通过 _hand_pose_seq 的传统脚本化关闭
-            #   holding    – 自适应抓取完成，保持抓取
-            #   opening    – 脚本化打开序列激活
-            #   adaptive   – 基于压力的增量关闭 (由按键 *p* 触发)
-            #   grabbing   – 新增：以恒定扭矩连续尝试关闭
-            self._hand_mode: str = "idle"
-
-            # ------------------------------------------------------------------
-            #  连续抓取配置
-            # ------------------------------------------------------------------
-
-            # 启动抓取时首先关闭的主关节。这些
-            # 通常对应于食指、中指和
-            # 拇指的远端关节，以便在更
-            # 近端的关节增加额外力之前，手指先包裹住物体。
-            self._GRAB_PRIMARY_IDX: list[int] = [1, 4, 6]
-
-            # 在 _hand_mode == 'grabbing' 时施加到*每个*闭合关节的
-            # 前馈扭矩 [N·m]。符号会根据
-            # 每个关节的闭合方向自动校正。
-            # 一个适度的默认值可以保持力在合理范围内，但该值可以
-            # 通过新的 ``--grip-force`` CLI 标志在运行时更改。
-            self._GRAB_TAU: float = getattr(self, "_cli_grip_force", 0.3)
-
-            # 连续收紧参数
-            # _SEQ_EPS 之前已定义 (0.01 rad)，并且每滴答
-            # _HAND_STEP 斜坡将每个关节平滑地移向*闭合*。
-
-            # 阶段标志，以便我们只在主关节
-            # 到达其闭合目标后才开始移动次要关节。
-            self._grab_stage: int = 0  # 0 → 主关节优先, 1 → 所有关节
-
-            # 预先计算关节的*闭合*方向，以便我们知道正确的
-            # 扭矩符号。如果所需姿势不可用，则回退到 +1。
-            self._hand_open_pose = self._hand_poses.get("open", [0.0] * 7)
-            self._hand_closed_pose = self._hand_poses.get("closed", [0.0] * 7)
-            self._close_dir = [
-                1.0 if (c - o) >= 0 else -1.0 for o, c in zip(self._hand_open_pose, self._hand_closed_pose)
-            ]
-
-            # 自适应抓取调整
-            self._PRESS_TARGET = 0.4  # 期望的最小压力 (N?)
-            self._PRESS_HYST = 0.05   # 迟滞
-
-            # 用于详细抓取调试的日志记录器帮助程序
-            self._log_hand = logging.getLogger("g1_gui.hand")
-            self._PRESS_THR = 0.5  # 接触阈值 (大约 – 需调整!)
-            self._PRESS_MIN_COUNT = 3  # 必须超过阈值的指尖数量
-        except Exception as exc:  # pylint: disable=broad-except
+            from unitree_sdk2py.dex3 import Dex3Client
+            
+            # 尝试连接 Dex3
+            self._connect_dex3(hand, iface)
+            
+            if self._dex3 is not None:
+                # 加载手部姿势配置
+                self._load_hand_poses()
+                
+                # 初始化手部控制变量
+                self._init_hand_variables()
+                
+                # 启动手部控制定时器
+                self._hand_timer = QtCore.QTimer()
+                self._hand_timer.setInterval(20)
+                self._hand_timer.timeout.connect(self._on_hand_tick)
+                self._hand_timer.start()
+                
+        except Exception as exc:
             print("[run_g1_gui] Dex3 手部控制已禁用:", exc, file=sys.stderr)
             self._dex3 = None
 
-        # 安装为全局事件过滤器，以便无论
-        # 哪个子控件当前具有焦点，我们都能接收到按键事件。
-        self.app.installEventFilter(self)
+    def _connect_dex3(self, hand: str, iface: str):
+        """连接到 Dex3 手部设备。"""
+        from unitree_sdk2py.dex3 import Dex3Client
+        
+        try:
+            self._dex3 = Dex3Client(hand=hand, interface=iface)
+        except Exception as exc:
+            print(f"[run_g1_gui] 在接口 '{iface}' 上的 Dex3 连接失败:", exc, file=sys.stderr)
+            
+            try:
+                self._dex3 = Dex3Client(hand=hand, interface=None)
+                print("[run_g1_gui] Dex3 通过自动检测的 NIC 连接。")
+            except Exception as exc2:
+                print("[run_g1_gui] Dex3 自动检测失败:", exc2, file=sys.stderr)
+                self._dex3 = None
 
-# ---------------- 后台工作线程 -------------------------------------
-# RealSense 接收器和 SLAM 仍在它们自己的后台线程中运行。
-# 遥控逻辑现在在 Qt 事件循环*内部*处理，因此我们不再
-# 需要单独的 `_keyboard_thread`。
+    def _load_hand_poses(self):
+        """从 CSV 文件加载手部姿势配置。"""
+        import csv
+        
+        self._hand_poses: dict[str, list[float]] = {}
+        
+        try:
+            csv_path = Path("data/hand_states.csv")
+            if csv_path.exists():
+                with csv_path.open("r", newline="") as fp:
+                    rdr = csv.DictReader(fp)
+                    for row in rdr:
+                        label = row.get("label")
+                        if label:
+                            try:
+                                vals = [float(row[f"joint{i}"]) for i in range(7)]
+                                self._hand_poses[label.lower()] = vals
+                            except Exception:
+                                pass
+        except Exception as exc:
+            print("[run_g1_gui] 无法加载 hand_states.csv:", exc, file=sys.stderr)
 
+    def _init_hand_variables(self):
+        """初始化手部控制变量。"""
+        # 运动控制 - 减小步长以实现更慢的手部运动
+        self._hand_cmd_q: list[float] = [0.0] * 7
+        self._hand_pose_seq: list[list[float]] = []
+        self._hand_seq_idx: int = 0
+        self._HAND_STEP = 0.04  # 从 0.1 减小到 0.04，使手部运动更加平滑
+        
+        # 预定义姿势
+        self._simple_open_pose = [
+            -0.15717165172100067, -0.41322529315948486, 0.02846403606235981,
+            0.17782948911190033, -0.025226416066288948, 0.17983606457710266,
+            -0.027690349146723747,
+        ]
+        
+        self._simple_closed_pose = [
+            0.07452802360057831, 0.9478388428688049, 1.766921877861023,
+            -1.4442411661148071, -1.4384468793869019, -1.5298594236373901,
+            -1.4153316020965576,
+        ]
+        
+        # 控制状态
+        self._hand_target: list[float] = list(self._simple_open_pose)
+        self._hand_mode: str = "idle"
+        
+        # 抓取配置
+        self._GRAB_PRIMARY_IDX: list[int] = [1, 4, 6]
+        self._GRAB_TAU: float = self._cli_grip_force
+        self._grab_stage: int = 0
+        
+        # 计算关节闭合方向
+        self._hand_open_pose = self._hand_poses.get("open", [0.0] * 7)
+        self._hand_closed_pose = self._hand_poses.get("closed", [0.0] * 7)
+        self._close_dir = [
+            1.0 if (c - o) >= 0 else -1.0 
+            for o, c in zip(self._hand_open_pose, self._hand_closed_pose)
+        ]
+        
+        # 压力控制参数
+        self._PRESS_TARGET = 0.4
+        self._PRESS_HYST = 0.05
+        self._PRESS_THR = 0.5
+        self._PRESS_MIN_COUNT = 3
+        
+        # 日志记录器
+        self._log_hand = logging.getLogger("g1_gui.hand")
+
+    def _start_background_threads(self, iface: str):
+        """启动后台工作线程。"""
         self._threads = [
-            threading.Thread(target=_rx_realsense, args=(self._stop_evt,), daemon=True),
+            threading.Thread(target=_rx_realsense_local, args=(self._stop_evt,), daemon=True),
             threading.Thread(target=_run_slam, args=(self._stop_evt,), daemon=True),
             threading.Thread(target=_rx_battery, args=(self._stop_evt, iface), daemon=True),
         ]
+        
         for t in self._threads:
             t.start()
 
-        # 优雅退出
+    def _configure_event_handling(self):
+        """配置事件处理。"""
+        # 安装全局事件过滤器
+        self.app.installEventFilter(self)
+        
+        # 连接退出信号
         self.app.aboutToQuit.connect(self._on_quit)
 
-        # 为初始的*左*默认值最终确定手臂特定的帮助程序。
+    def _finalize_initialization(self):
+        """完成初始化过程。"""
         try:
             self._configure_arm_variables()
         except Exception as exc:
             print("[run_g1_gui] 初始手臂配置失败:", exc, file=sys.stderr)
+
+    def _start_lowstate_subscription(self):
+        """启动 LowState 订阅线程。"""
+        def _init_ls_sub():
+            from unitree_sdk2py.core.channel import ChannelSubscriber
+            
+            candidates = [
+                "unitree_sdk2py.idl.unitree_hg.msg.dds_.LowState_",
+                "unitree_sdk2py.idl.unitree_go.msg.dds_.LowState_",
+            ]
+            
+            for dotted in candidates:
+                try:
+                    mod_path, cls_name = dotted.rsplit(".", 1)
+                    mod = __import__(mod_path, fromlist=[cls_name])
+                    LowState_ = getattr(mod, cls_name)
+                    
+                    def _ls_cb(msg):
+                        for j_idx in (*self._arm_joint_idx, self._WAIST_YAW_IDX):
+                            try:
+                                self._joint_cur[j_idx] = msg.motor_state[j_idx].q
+                            except Exception:
+                                pass
+                    
+                    sub = ChannelSubscriber("rt/lowstate", LowState_)
+                    sub.Init(_ls_cb, 200)
+                    self._ls_sub = sub
+                    return
+                    
+                except Exception:
+                    continue
+        
+        threading.Thread(target=_init_ls_sub, daemon=True).start()
+
+    def _prepare_inactive_arm(self):
+        """为非活动手臂设置待机姿势。"""
+        def _apply_pose_once(pose: list[tuple[int, float]]):
+            for j_idx, q_val in pose:
+                mc = self._arm_cmd.motor_cmd[j_idx]
+                mc.q = q_val
+                mc.dq = 0.0
+                mc.tau = 0.0
+                mc.kp = 60.0
+                mc.kd = 1.5
+
+        # 为另一只手臂构建准备位姿
+        if self._active_arm == "right":
+            ready_other = [
+                (22, +0.087), (23, -0.271), (24, +0.323), (25, +0.691),
+                (26, +0.240), (27, -0.771), (28, -0.176),
+            ]
+        else:
+            ready_other = [
+                (15, +0.211), (16, +0.181), (17, -0.284), (18, +0.672),
+                (19, -0.379), (20, -0.852), (21, -0.019),
+            ]
+
+        _apply_pose_once(ready_other)
+
+        # 重新计算 CRC 并立即传输，以便机器人在
+        # 第一个 50 Hz 定时器滴答发生之前开始保持位姿。
+        self._arm_cmd.crc = self._crc.Crc(self._arm_cmd)
+        try:
+            self._arm_pub.Write(self._arm_cmd)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     #  动态手臂配置帮助程序
@@ -1816,7 +1626,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
         """
         周期性发布器，驱动选定的手臂通过预定义的启动姿势。
 
-        应用一个温和的每关节斜坡（每 20 毫秒 ``self._STEP`` rad），
+        应用一个温和的每关节斜坡（每 40 毫秒 ``self._STEP`` rad），
         以便运动看起来平滑，没有任何突然的颠簸。
         """
 
@@ -1832,16 +1642,14 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
         # 我们现在在短暂的宽限期后回退到预初始化的*零*姿势，
         # 而不是提前退出。
 
-        # 允许最多 1 秒的时间来接收第一个反馈包。之后，我们假设
-        # 主题缺失，并继续使用默认角度，
-        # 以便至少学习到的运动和手动卸力按钮仍然有效。
-
+        # 允许最多 2 秒的时间来接收第一个反馈包，增加等待时间以确保稳定初始化
         if not self._joint_cur and not getattr(self, "_no_fb_deadline", None):
             # 记住我们第一次注意到缺少反馈的时刻，并
             # 定义一个截止日期，之后我们停止等待 rt/lowstate
             # 并无论如何都运行手臂序列。
 
-            self._no_fb_deadline = time.time() + 1.0
+            self._no_fb_deadline = time.time() + 2.0  # 从 1.0 秒增加到 2.0 秒
+
 
         if not self._joint_cur and time.time() < self._no_fb_deadline:
             return  # 再等一会儿 LowState
@@ -1856,7 +1664,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             target_pose = self._pose_seq[self._seq_idx]
 
         # ------------------------------------------------------------------
-        #  将命令的关节角度朝目标位姿推进
+        #  将命令的关节角度朝目标位姿推进 - 使用更小的步长
         # ------------------------------------------------------------------
 
         all_reached = True
@@ -1874,7 +1682,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             self._initialised_from_state = True
 
         # ----------------------------------------------------------------
-        #  现在将每个命令的关节朝当前目标推进
+        #  现在将每个命令的关节朝当前目标推进，使用更小的步长以确保平滑运动
         # ----------------------------------------------------------------
         for idx, tgt in target_pose:
             cur = self._cmd_q.get(idx, 0.0)
@@ -1882,7 +1690,9 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             if abs(diff) <= self._SEQ_EPS:
                 self._cmd_q[idx] = tgt
             else:
-                step = self._STEP if diff > 0 else -self._STEP
+                # 使用更小的步长，并根据角度差异动态调整步长
+                dynamic_step = min(self._STEP, abs(diff) * 0.1)  # 限制步长为差值的10%
+                step = dynamic_step if diff > 0 else -dynamic_step
                 if abs(step) > abs(diff):
                     step = diff  # 无过冲
                 self._cmd_q[idx] = cur + step
@@ -1893,7 +1703,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             self._seq_idx += 1
 
         # ------------------------------------------------------------------
-        #  构建并传输 LowCmd 消息
+        #  构建并传输 LowCmd 消息 - 使用更温和的增益
         # ------------------------------------------------------------------
 
         try:
@@ -1905,8 +1715,8 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
                 mc.q = q
                 mc.dq = 0.0
                 mc.tau = 0.0
-                mc.kp = 60.0
-                mc.kd = 1.5
+                mc.kp = 40.0  # 从 60.0 降低到 40.0，减少刚度以实现更平滑的运动
+                mc.kd = 1.0   # 从 1.5 降低到 1.0，减少阻尼
 
             # 发布前重新计算 CRC (固件要求)。
             self._arm_cmd.crc = self._crc.Crc(self._arm_cmd)
@@ -1914,6 +1724,7 @@ class G1Windows(QtCore.QObject):  # type: ignore[misc]  # pylint: disable=too-fe
             self._arm_pub.Write(self._arm_cmd)
         except Exception as exc:  # pylint: disable=broad-except
             print("[run_g1_gui] 手臂发布失败:", exc, file=sys.stderr)
+
 
     # ------------------------------------------------------------------
     #  Dex3 手部控制帮助程序
@@ -2603,15 +2414,15 @@ def main() -> None:
     parser.add_argument(
         "--arm",
         choices=["left", "right"],
-        default="left",
-        help="启动时控制哪只手臂 (默认: left)",
+        default="right",
+        help="启动时控制哪只手臂 (默认: right)",
     )
 
     parser.add_argument(
         "--hand",
         choices=["left", "right"],
-        default="left",
-        help="连接了哪个 Dex3 手 (默认: left)。当连接了右手单元时，"
+        default="right",
+        help="连接了哪个 Dex3 手 (默认: right。当连接了右手单元时，"
         "传递 --hand right。",
     )
 

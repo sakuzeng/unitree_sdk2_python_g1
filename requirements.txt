@@ -9,3 +9,7 @@ pyqtgraph~=0.13
 webrtcvad 
 noisereduce
 netifaces
+pandas
+scikit-learn
+joblib
+matplotlib

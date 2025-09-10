@@ -43,20 +43,6 @@ def hanger_boot_sequence(
     sport_client = LocoClient()
     sport_client.SetTimeout(10.0)
     sport_client.Init()
-
-    # 检查机器人是否已处于站立或运动状态 (FSM ID 200, FSM mode 0/1)
-    # 如果是，则跳过启动序列，直接返回。
-    try:
-        cur_id = int(sport_client.GetFsmId())
-        cur_mode = int(sport_client.GetFsmMode())
-        if cur_id == 200 and cur_mode is not None and cur_mode != 2:
-            print(
-                f"机器人已处于平衡站立状态 (FSM 200, mode {cur_mode}) – 跳过启动序列。"
-            )
-            return sport_client
-    except Exception:
-        pass
-
     def get_mode(val) -> Optional[int]:
         """
         解析运动控制客户端返回的值，提取模式（mode）或状态ID（FSM ID）。
@@ -73,13 +59,46 @@ def hanger_boot_sequence(
             return int(val)
         except (ValueError, TypeError):
             return None
-
     def show(tag: str) -> None:
         """打印当前操作和机器人的 FSM 及平衡状态信息。"""
         fsm_id = get_mode(sport_client.GetFsmId())
         fsm_mode = get_mode(sport_client.GetFsmMode())
         balance_mode = get_mode(sport_client.GetBalanceMode())
         print(f"{tag:<12} → FSM {fsm_id}   mode {fsm_mode}   balance {balance_mode}")
+    show("initial")
+    
+    # 检查机器人是否已处于站立或运动状态 (FSM ID 200, FSM mode 0/1)
+    # 如果是，则跳过启动序列，直接返回。
+    print("=== 检查当前机器人状态 ===")
+    try:
+        # 使用已有的 get_mode 函数进行解析，而不是直接 int() 转换
+        cur_id = get_mode(sport_client.GetFsmId())
+        cur_mode = get_mode(sport_client.GetFsmMode())
+        
+        # 添加原始值调试输出
+        raw_id = sport_client.GetFsmId()
+        raw_mode = sport_client.GetFsmMode()
+        print(f"原始 FSM ID: {raw_id} (类型: {type(raw_id)})")
+        print(f"原始 FSM Mode: {raw_mode} (类型: {type(raw_mode)})")
+        print(f"解析后 FSM ID: {cur_id}, FSM Mode: {cur_mode}")
+        
+        if cur_id == 200 and cur_mode != None and cur_mode != 2:
+            print(f"✓ 机器人已处于平衡站立状态 (FSM {cur_id}, mode {cur_mode}) – 跳过启动序列。")
+            return sport_client
+        else:
+            print(f"✗ 机器人未处于目标状态，执行完整启动序列")
+            print(f"  当前状态: FSM {cur_id}, mode {cur_mode}")
+            print(f"  目标状态: FSM 200, mode 0")
+            
+    except Exception as e:
+        print(f"检查机器人状态时出错: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    print("=== 状态检查完成 ===\n")
+
+
+
 
     # 2. 进入阻尼模式 (Damp, FSM ID: 1)
     # 此时关节有阻力，但不会主动运动。

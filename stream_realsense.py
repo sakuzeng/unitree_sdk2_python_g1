@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 stream_realsense.py
 ====================
@@ -15,8 +16,6 @@ stream_realsense.py
 - `opencv-python` (`pip install opencv-python`)
 
 无需额外的辅助库或 ROS 运行时环境。
-
-作者: OpenAI Codex-CLI helper
 """
 
 from __future__ import annotations
@@ -50,11 +49,15 @@ def check_device_availability() -> bool:
         bool: 如果设备可用，返回 True；否则返回 False。
     """
     try:
+        # 检查是否有进程占用视频设备
         result = subprocess.run(['lsof', '/dev/video*'], capture_output=True, text=True)
         if result.stdout:
             print("警告: 检测到摄像头设备被占用:")
             print(result.stdout)
             return False
+        return True
+    except FileNotFoundError:
+        # lsof 命令不存在，跳过检查
         return True
     except Exception:
         return True  # 如果检查失败，假设设备可用
@@ -62,17 +65,64 @@ def check_device_availability() -> bool:
 
 def reset_usb_devices() -> None:
     """
-    重置 USB 摄像头设备。
+    重置 USB 摄像头设备（用户级操作）。
+    
+    注意：某些操作可能需要管理员权限。如果遇到权限问题，
+    请考虑将用户添加到 video 组或使用 udev 规则。
     """
     try:
-        print("正在重置 USB 摄像头设备...")
-        subprocess.run(['sudo', 'modprobe', '-r', 'uvcvideo'], check=False)
-        time.sleep(1)
-        subprocess.run(['sudo', 'modprobe', 'uvcvideo'], check=False)
-        time.sleep(2)
-        print("USB 设备重置完成")
+        print("正在尝试重置 USB 摄像头设备...")
+        
+        # 尝试通过 RealSense API 重置设备
+        ctx = rs.context()
+        devices = ctx.query_devices()
+        for device in devices:
+            try:
+                device.hardware_reset()
+                print(f"已重置设备: {device.get_info(rs.camera_info.name)}")
+                time.sleep(2)
+            except Exception as e:
+                print(f"重置设备失败: {e}")
+        
+        print("设备重置尝试完成")
+        
     except Exception as e:
         print(f"重置 USB 设备失败: {e}")
+        print("提示: 如果经常遇到设备占用问题，请考虑：")
+        print("1. 将用户添加到 video 组: sudo usermod -a -G video $USER")
+        print("2. 重启系统以应用组权限变更")
+        print("3. 检查其他可能占用摄像头的程序")
+
+
+def check_video_permissions() -> bool:
+    """
+    检查当前用户是否有访问视频设备的权限。
+    
+    Returns:
+        bool: 如果有权限返回 True，否则返回 False。
+    """
+    import os
+    import grp
+    
+    try:
+        # 检查用户是否在 video 组中
+        video_gid = grp.getgrnam('video').gr_gid
+        user_groups = os.getgroups()
+        
+        if video_gid in user_groups:
+            return True
+        else:
+            print("警告: 当前用户不在 video 组中")
+            print("建议运行: sudo usermod -a -G video $USER")
+            print("然后重新登录或重启系统")
+            return False
+            
+    except KeyError:
+        # video 组不存在
+        return True
+    except Exception:
+        # 权限检查失败，假设有权限
+        return True
 
 
 def colourise_depth(depth_frame: rs.depth_frame) -> cv2.Mat:
@@ -131,6 +181,9 @@ def run_with_retry(
         enable_imu (bool): 是否启用 IMU 数据流。
         max_retries (int): 最大重试次数。
     """
+    # 首先检查权限
+    check_video_permissions()
+    
     for attempt in range(max_retries):
         try:
             print(f"尝试启动摄像头 (第 {attempt + 1}/{max_retries} 次)...")
@@ -148,6 +201,11 @@ def run_with_retry(
                     reset_usb_devices()
                 else:
                     print("所有重试都失败了")
+                    print("\n故障排除建议:")
+                    print("1. 确保没有其他程序在使用摄像头")
+                    print("2. 检查 USB 连接是否稳定")
+                    print("3. 尝试重新插拔摄像头")
+                    print("4. 重启系统以清理设备状态")
                     raise
             else:
                 raise
@@ -203,7 +261,15 @@ def run(
 
     # Start streaming
     print("Starting pipeline …")
-    profile = pipeline.start(config)
+    try:
+        profile = pipeline.start(config)
+    except RuntimeError as e:
+        if "Device or resource busy" in str(e):
+            print("摄像头设备被占用，尝试以下解决方案：")
+            print("1. 关闭其他可能使用摄像头的程序")
+            print("2. 重新插拔 USB 连接")
+            print("3. 检查系统权限设置")
+        raise
 
     print("Camera intrinsics (colour stream):")
     colour_intr: rs.video_stream_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
@@ -234,7 +300,7 @@ def run(
             depth_frame = temporal_filter.process(depth_frame)
 
             # Convert RealSense frames to numpy arrays
-            colour_image = np.asanyarray(colour_frame.get_data())  # 修复：确保是 numpy 数组
+            colour_image = np.asanyarray(colour_frame.get_data())
             depth_coloured = colourise_depth(depth_frame)
 
             # Combine side-by-side for display (make sure both are same height)
@@ -260,8 +326,8 @@ def run(
                 ir_left = aligned_frames.get_infrared_frame(1)
                 ir_right = aligned_frames.get_infrared_frame(2)
                 if ir_left and ir_right:
-                    ir_left_img = np.asanyarray(ir_left.get_data())  # 修复：转换为 numpy 数组
-                    ir_right_img = np.asanyarray(ir_right.get_data())  # 修复：转换为 numpy 数组
+                    ir_left_img = np.asanyarray(ir_left.get_data())
+                    ir_right_img = np.asanyarray(ir_right.get_data())
                     cv2.imshow("IR-left", ir_left_img)
                     cv2.imshow("IR-right", ir_right_img)
 
