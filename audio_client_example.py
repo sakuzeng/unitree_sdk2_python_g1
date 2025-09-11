@@ -32,10 +32,15 @@ CHANNELS = 1
 SAMPLE_WIDTH = 2
 FRAME_RATE = 16000
 
+# 降噪参数
+NOISE_REDUCTION_STATEFUL = True  # 使用有状态降噪
+NOISE_REDUCTION_STRENGTH = 0.8   # 降噪强度 (0.0-1.0)
+
 # 全局变量
 audio_receiver_running = False
 audio_receiver_thread = None
 global_noise_profile = None # 用于存储全局噪声样本
+noise_reduction_buffer = deque(maxlen=FRAME_RATE // 2)  # 500ms 的噪声估计缓冲区
 
 # 初始化语音识别模型
 model_dir = "/home/unitree/.cache/huggingface/hub/models--FunAudioLLM--SenseVoiceSmall/snapshots/3eb3b4eeffc2f2dde6051b853983753db33e35c3"
@@ -232,13 +237,89 @@ def signal_handler(signum, frame):
     # 在退出前转换音频文件
     print("正在转换录制的音频文件...")
     convert_raw_to_wav("data/received_audio.raw", "data/received_audio.wav")
-    convert_raw_to_wav("data/denoised_audio.raw", "data/denoised_audio.wav")
+    convert_raw_to_wav("data/realtime_denoised_audio.raw", "data/realtime_denoised_audio.wav")
+    
+    # 转换语音段文件
+    try:
+        for filename in os.listdir("data/"):
+            if filename.startswith("speech_segment_") and filename.endswith(".raw"):
+                raw_path = os.path.join("data", filename)
+                wav_path = os.path.join("data", filename.replace(".raw", ".wav"))
+                convert_raw_to_wav(raw_path, wav_path)
+    except Exception as e:
+        print(f"转换语音段文件时出错: {e}")
 
     sys.exit(0)
 
+def apply_realtime_noise_suppression(audio_np, sample_rate=16000):
+    """
+    实时音频降噪处理，适用于流式数据
+    
+    Args:
+        audio_np (np.ndarray): 原始音频数据的 numpy 数组 (dtype=np.int16)
+        sample_rate (int): 采样率，默认 16kHz
+        
+    Returns:
+        np.ndarray: 降噪后的音频数据 numpy 数组 (dtype=np.int16)
+    """
+    global global_noise_profile, noise_reduction_buffer
+    
+    # 检查输入是否为空
+    if audio_np.size == 0:
+        return audio_np
+    
+    # 转换为 float32 格式进行处理
+    audio_float = audio_np.astype(np.float32) / 32768.0
+    
+    try:
+        # 如果有预先录制的噪声样本，使用它
+        if global_noise_profile is not None and global_noise_profile.size > 0:
+            noise_float = global_noise_profile.astype(np.float32) / 32768.0
+            denoised_audio = nr.reduce_noise(
+                y=audio_float, 
+                y_noise=noise_float, 
+                sr=sample_rate,
+                stationary=True,
+                prop_decrease=NOISE_REDUCTION_STRENGTH
+            )
+        else:
+            # 如果没有预先录制的噪声样本，使用自适应降噪
+            # 将当前音频数据添加到噪声估计缓冲区
+            noise_reduction_buffer.extend(audio_np)
+            
+            if len(noise_reduction_buffer) >= FRAME_RATE // 4:  # 至少250ms的数据
+                # 使用缓冲区中的数据作为噪声样本进行降噪
+                noise_sample = np.array(list(noise_reduction_buffer)[-FRAME_RATE//4:], dtype=np.float32) / 32768.0
+                denoised_audio = nr.reduce_noise(
+                    y=audio_float,
+                    y_noise=noise_sample,
+                    sr=sample_rate,
+                    stationary=False,
+                    prop_decrease=NOISE_REDUCTION_STRENGTH * 0.6  # 自适应降噪使用较低强度
+                )
+            else:
+                # 数据不足时，使用轻微的频谱减法
+                denoised_audio = nr.reduce_noise(
+                    y=audio_float,
+                    sr=sample_rate,
+                    stationary=False,
+                    prop_decrease=0.3
+                )
+    except Exception as e:
+        print(f"降噪处理出错: {e}")
+        denoised_audio = audio_float
+    
+    # 转换回 int16 格式
+    denoised_audio_int16 = (denoised_audio * 32768.0).astype(np.int16)
+    
+    # 防止溢出
+    denoised_audio_int16 = np.clip(denoised_audio_int16, -32768, 32767)
+    
+    return denoised_audio_int16
+
 def process_audio_stream(audio_data, sample_rate=16000):
     """
-    处理音频流，检测语音活动并调用语音识别
+    处理音频流：先降噪，再检测语音活动，最后调用语音识别
     Args:
         audio_data (bytes): 接收到的音频数据
         sample_rate (int): 采样率，默认 16kHz
@@ -254,22 +335,47 @@ def process_audio_stream(audio_data, sample_rate=16000):
         if len(frame) < frame_size:
             continue
 
-        # 判断当前帧是否为语音
-        is_speech = vad.is_speech(frame, sample_rate)
+        # 步骤1: 将音频帧转换为numpy数组
+        frame_np = np.frombuffer(frame, dtype=np.int16)
+        
+        # 步骤2: 先对音频帧进行降噪处理
+        denoised_frame_np = apply_realtime_noise_suppression(frame_np, sample_rate)
+        
+        # 步骤3: 将降噪后的数据转换回bytes格式用于VAD检测
+        denoised_frame_bytes = denoised_frame_np.tobytes()
+        
+        # 保存降噪后的音频数据到文件（用于调试）
+        try:
+            denoised_file_path = "data/realtime_denoised_audio.raw"
+            os.makedirs(os.path.dirname(denoised_file_path), exist_ok=True)
+            with open(denoised_file_path, "ab") as f:
+                f.write(denoised_frame_bytes)
+        except Exception as e:
+            print(f"保存实时降噪音频时出错: {e}")
+        
+        # 步骤4: 使用降噪后的音频进行语音活动检测
+        try:
+            is_speech = vad.is_speech(denoised_frame_bytes, sample_rate)
+        except Exception as e:
+            print(f"VAD检测出错: {e}")
+            is_speech = False
 
         if is_speech:
-            # 如果检测到语音，加入缓冲区
-            audio_buffer.extend(np.frombuffer(frame, dtype=np.int16))
+            # 如果检测到语音，将降噪后的数据加入缓冲区
+            audio_buffer.extend(denoised_frame_np)
             is_speaking = True
             silence_start_time = None
+            print(".", end="", flush=True)  # 显示语音活动指示器
         else:
             # 如果检测到静音
             if is_speaking:
                 if silence_start_time is None:
                     # 记录静音开始时间
                     silence_start_time = time.time()
-                elif time.time() - silence_start_time > SILENCE_TIMEOUT:  # 使用常量判断静音超时
+                    print(" [静音开始]", end="", flush=True)
+                elif time.time() - silence_start_time > SILENCE_TIMEOUT:
                     # 停止说话，调用语音识别
+                    print(f"\n[语音结束，音频长度: {len(audio_buffer)/sample_rate:.2f}秒]")
                     is_speaking = False
                     silence_start_time = None
                     recognize_speech()
@@ -277,48 +383,54 @@ def process_audio_stream(audio_data, sample_rate=16000):
 def recognize_speech():
     """
     调用语音识别模型处理缓冲区中的音频数据
+    注意：缓冲区中的数据已经是降噪后的数据
     """
-    global audio_buffer, global_noise_profile
+    global audio_buffer
 
     if not audio_buffer:
         return
 
-    # 将缓冲区中的音频数据转换为 numpy 数组
+    # 将缓冲区中的音频数据转换为 numpy 数组（已经降噪）
     audio_np = np.array(list(audio_buffer), dtype=np.int16)
     audio_buffer.clear()  # 清空缓冲区
 
-    # 如果有噪声样本，则应用降噪
-    if global_noise_profile is not None and global_noise_profile.size > 0:
-        denoised_audio_np = apply_noise_suppression(audio_np, global_noise_profile)
-    else:
-        denoised_audio_np = audio_np # 如果没有噪声样本，则使用原始音频
+    print(f"开始语音识别，音频长度: {len(audio_np)/FRAME_RATE:.2f}秒")
 
-    # 将降噪后的音频数据追加保存到文件
+    # 将降噪后的完整语音段保存到文件
     try:
-        denoised_file_path = "data/denoised_audio.raw"
-        # 确保目录存在，这在第一次写入时很有用
-        os.makedirs(os.path.dirname(denoised_file_path), exist_ok=True)
-        with open(denoised_file_path, "ab") as f:
-            f.write(denoised_audio_np.tobytes())
+        speech_segment_path = f"data/speech_segment_{int(time.time())}.raw"
+        os.makedirs(os.path.dirname(speech_segment_path), exist_ok=True)
+        with open(speech_segment_path, "wb") as f:
+            f.write(audio_np.tobytes())
+        print(f"语音段已保存到: {speech_segment_path}")
     except Exception as e:
-        print(f"保存降噪音频时出错: {e}")
+        print(f"保存语音段时出错: {e}")
 
     # 转换为模型需要的格式
-    audio_float32 = denoised_audio_np.astype(np.float32) / 32768.0
+    audio_float32 = audio_np.astype(np.float32) / 32768.0
 
-    # 调用语音识别模型
-    res = asr_model.generate(
-        input=audio_float32,
-        language="auto",
-        use_itn=True,
-        batch_size_s=60,
-        merge_vad=True,
-        merge_length_s=MAX_SPEECH_DURATION,
-        sampling_rate=16000,
-    )
-    if res and "text" in res[0]:
-        text = rich_transcription_postprocess(res[0]["text"])
-        print(f"识别结果: {text}")
+    try:
+        # 调用语音识别模型
+        res = asr_model.generate(
+            input=audio_float32,
+            language="auto",
+            use_itn=True,
+            batch_size_s=60,
+            merge_vad=True,
+            merge_length_s=MAX_SPEECH_DURATION,
+            sampling_rate=16000,
+        )
+        if res and len(res) > 0 and "text" in res[0]:
+            text = rich_transcription_postprocess(res[0]["text"])
+            print(f"🎤 识别结果: {text}")
+            
+            # 如果识别结果为空或只是噪音，给出提示
+            if not text.strip() or len(text.strip()) < 2:
+                print("⚠️  识别结果为空，可能是噪音或语音不清晰")
+        else:
+            print("⚠️  语音识别失败或无有效结果")
+    except Exception as e:
+        print(f"❌ 语音识别过程中出错: {e}")
 
 def main():
     global audio_receiver_running, audio_receiver_thread
@@ -346,6 +458,14 @@ def main():
     audio_client.Init()
     
     print("=== G1 音频功能测试开始 ===")
+    print("✨ 新功能：实时音频降噪 + 语音活动检测")
+    print(f"🔧 降噪强度: {NOISE_REDUCTION_STRENGTH}")
+    print(f"⏱️  静音超时: {SILENCE_TIMEOUT}秒")
+    
+    if global_noise_profile is not None:
+        print("🎯 使用预录制噪声样本进行降噪")
+    else:
+        print("🔄 使用自适应降噪（建议先运行 collect_noise.py）")
         
     # # 1. 音量控制测试
     # print("\n1. 音量控制测试")
@@ -413,13 +533,13 @@ def main():
     # 5. 启动音频数据接收器
     print("\n5. 启动音频数据接收器")
     print("请使用APP或遥控器将机器人切换到唤醒模式以开启麦克风")
+    print("💬 开始说话时会显示 '.' 符号，语音结束后自动识别")
     audio_receiver_running = True
     audio_receiver_thread = threading.Thread(target=audio_receiver, args=(interface_name,), daemon=True)
     audio_receiver_thread.start()
 
     # 等待接收器启动
     time.sleep(1) 
-
 
     try:
         # 主循环，等待ASR消息和音频数据
@@ -435,7 +555,7 @@ def main():
         # 在退出前转换音频文件
         print("正在转换录制的音频文件...")
         convert_raw_to_wav("data/received_audio.raw", "data/received_audio.wav")
-        convert_raw_to_wav("data/denoised_audio.raw", "data/denoised_audio.wav")
+        convert_raw_to_wav("data/realtime_denoised_audio.raw", "data/realtime_denoised_audio.wav")
 
         print("程序已退出")
 
