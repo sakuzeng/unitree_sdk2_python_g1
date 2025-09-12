@@ -2,7 +2,7 @@
 """
 G1 机器人全栈控制系统
 
-使用组件化架构实现模块化管理，包含占用网格地图显示。
+使用组件化架构实现模块化管理，包含占用网格地图显示和手臂控制。
 """
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from components.robot_control import RobotControlComponent
 from components.occupancy_grid import OccupancyGridComponent
 from components.enhanced_display import EnhancedDisplayComponent
 from components.battery import BatteryComponent
+from components.arm_control import G1ArmControlComponent
 
 
 class G1StackSystem:
@@ -36,12 +37,17 @@ class G1StackSystem:
         self.interface = interface
         self.state_manager = StateManager()
         self.components: List[ComponentBase] = []
+        self.arm_component: Optional[G1ArmControlComponent] = None
         self.display_component: Optional[EnhancedDisplayComponent] = None
         self.running = False
     
     def add_component(self, component: ComponentBase) -> None:
         """添加组件"""
         self.components.append(component)
+        
+        # 特殊处理手臂控制组件
+        if isinstance(component, G1ArmControlComponent):
+            self.arm_component = component
     
     def set_display_component(self, display_component: EnhancedDisplayComponent) -> None:
         """设置显示组件"""
@@ -78,6 +84,7 @@ class G1StackSystem:
         voltage = self.state_manager.get("voltage")  # 新增：电池电压
         active_arm = self.state_manager.get("active_arm", "right")  # 新增：活动手臂
         balance_mode = self.state_manager.get("balance_mode", -1)  # 新增：平衡模式
+        arm_pose_reached = self.state_manager.get("arm_pose_reached", True)  # 新增：手臂位姿状态
         
         # 创建占位图像
         if rgbd is None:
@@ -117,10 +124,12 @@ class G1StackSystem:
         
         # 添加手臂和平衡模式信息
         status_text += f"   Arm:{active_arm[0].upper()}"
+        if not arm_pose_reached:
+            status_text += "🔄"  # 运动中标识
         if balance_mode >= 0:
             status_text += f"   Bal:{balance_mode}"
         
-        status_text += "   –  Z: quit  ESC: e-stop"
+        status_text += "   –  Z: damp  TAB: switch arm  ESC: e-stop"
         
         # 绘制状态栏
         cv2.rectangle(canvas, (0, canvas.shape[0] - 40), (canvas.shape[1], canvas.shape[0]), (0, 0, 0), -1)
@@ -137,6 +146,10 @@ class G1StackSystem:
             active_components.append("SLAM")
         if soc is not None or voltage is not None:
             active_components.append("Battery")
+        if self.arm_component and self.arm_component.control_enabled:
+            active_components.append("Arm")
+            if self.arm_component.ml_enabled:
+                active_components.append("ML")
         
         sys_info = f"Active: {', '.join(active_components) if active_components else 'None'}"
         cv2.putText(canvas, sys_info, (10, 25), 
@@ -148,13 +161,57 @@ class G1StackSystem:
         cv2.putText(canvas, timestamp, (canvas.shape[1] - 100, 25), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
         
+        # 添加手臂控制提示
+        if self.arm_component and self.arm_component.control_enabled:
+            if self.arm_component.ml_enabled:
+                arm_hint = "Arrows/F/B: ML arm control"
+            else:
+                arm_hint = "Arm control: ML disabled"
+            cv2.putText(canvas, arm_hint, (10, canvas.shape[0] - 60), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+        
         return canvas
+    
+    def handle_keyboard_input(self, key_code: int) -> bool:
+        """
+        处理键盘输入
+        
+        Args:
+            key_code: OpenCV键码
+            
+        Returns:
+            bool: 是否应该退出程序
+        """
+        if key_code == 27 or key_code == ord("q"):  # ESC 或 Q 键
+            return True
+        
+        # 将键码转换为按键名称
+        key_map = {
+            ord('w'): 'w', ord('a'): 'a', ord('s'): 's', ord('d'): 'd',
+            ord('q'): 'q', ord('e'): 'e', ord('z'): 'z',
+            ord('f'): 'f', ord('b'): 'b',
+            9: 'tab',  # Tab键
+            82: 'up', 84: 'down', 81: 'left', 83: 'right',  # 箭头键
+        }
+        
+        key_name = key_map.get(key_code)
+        if key_name is None:
+            return False
+        
+        # 手臂控制优先处理
+        if self.arm_component and self.arm_component.handle_keyboard_input(key_name):
+            return False
+        
+        # 其他控制逻辑可以在这里添加
+        
+        return False
     
     def run_display_loop(self) -> None:
         """运行显示循环"""
         print("[G1-Stack] 系统就绪，显示主窗口...")
         print("控制说明:")
         print("  WASD: 移动控制  QE: 侧移  Z: 阻尼模式  ESC: 紧急停止")
+        print("  TAB: 切换手臂  箭头键/F/B: ML手臂控制")
         print("  窗口按键: Q 或 ESC 退出程序")
         print("  地图显示: 白色=障碍物, 绿色箭头=机器人位置和朝向")
         
@@ -166,7 +223,7 @@ class G1StackSystem:
                     cv2.imshow("G1-Stack (Enhanced)", canvas)
                 
                 key = cv2.waitKey(1) & 0xFF
-                if key in (27, ord("q")):  # ESC 或 Q 键
+                if self.handle_keyboard_input(key):
                     print("[G1-Stack] 用户请求退出...")
                     break
                 
@@ -203,6 +260,7 @@ def main() -> None:
     parser.add_argument("--no-realsense", action="store_true", help="禁用 RealSense")
     parser.add_argument("--no-slam", action="store_true", help="禁用 SLAM")
     parser.add_argument("--no-robot", action="store_true", help="禁用机器人控制")
+    parser.add_argument("--no-arm", action="store_true", help="禁用手臂控制")
     parser.add_argument("--clear", type=float, default=0.15, 
                        help="地面间隙阈值（米），高于此值的点被视为障碍物")
     args = parser.parse_args()
@@ -233,6 +291,10 @@ def main() -> None:
         
         print("[G1-Stack] 启用电池监控组件")
         system.add_component(BatteryComponent(system.state_manager, args.iface))
+        
+        if not args.no_arm:
+            print("[G1-Stack] 启用手臂控制组件")
+            system.add_component(G1ArmControlComponent(system.state_manager, args.iface))
     
     print(f"[G1-Stack] 总计启用 {len(system.components)} 个组件")
     
