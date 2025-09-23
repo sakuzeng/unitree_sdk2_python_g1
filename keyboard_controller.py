@@ -141,7 +141,7 @@ def drive_loop(stdscr: "curses._CursesWindow", bot) -> None:
 
             if key("esc"):
                 bot.StopMove()
-                bot.ZeroTorque()  # 进入零力矩模式（紧急）
+                # bot.ZeroTorque()  # 进入零力矩模式（紧急）
                 break
 
             # 2. 按固定频率向机器人发送指令并更新 HUD
@@ -152,7 +152,7 @@ def drive_loop(stdscr: "curses._CursesWindow", bot) -> None:
 
                 # 刷新 HUD 显示
                 stdscr.erase()
-                stdscr.addstr(0, 0, "Hold keys to drive – Z: 进入阻尼模式并退出 — Esc: 紧急停止 (零力矩) 并退出")
+                stdscr.addstr(0, 0, "Hold keys to drive – Z: 进入阻尼模式并退出 — Esc: 停止运动保持主运控并退出")
                 stdscr.addstr(1, 0, "Ctrl+C中断会进入阻尼模式，请确认机器人已正确悬挂")
                 stdscr.addstr(3, 0, f"vx: {vx:+.2f}  vy: {vy:+.2f}  omega: {omega:+.2f}")
                 stdscr.refresh()

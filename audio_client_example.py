@@ -467,32 +467,32 @@ def main():
     else:
         print("🔄 使用自适应降噪（建议先运行 collect_noise.py）")
         
-    # # 1. 音量控制测试
-    # print("\n1. 音量控制测试")
-    # code, volume = audio_client.GetVolume()
-    # if code == 0:
-    #     print(f"当前音量: {volume}")
-    # else:
-    #     print(f"获取音量失败，错误码: {code}")
+    # 1. 音量控制测试
+    print("\n1. 音量控制测试")
+    code, volume = audio_client.GetVolume()
+    if code == 0:
+        print(f"当前音量: {volume}")
+    else:
+        print(f"获取音量失败，错误码: {code}")
     
-    # print("设置音量为50")
-    # code = audio_client.SetVolume(50)
-    # if code == 0:
-    #     code, volume = audio_client.GetVolume()
-    #     if code == 0:
-    #         print(f"设置后音量: {volume}")
-    # else:
-    #     print(f"设置音量失败，错误码: {code}")
+    print("设置音量为50")
+    code = audio_client.SetVolume(100)
+    if code == 0:
+        code, volume = audio_client.GetVolume()
+        if code == 0:
+            print(f"设置后音量: {volume}")
+    else:
+        print(f"设置音量失败，错误码: {code}")
     
-    # # 2. TTS测试
-    # print("\n2. TTS测试")
-    # print("播放中文TTS...")
-    # code = audio_client.TtsMaker("你好。我是宇树科技的机器人。例程启动成功", 0)
-    # if code == 0:
-    #     print("中文TTS播放成功")
-    # else:
-    #     print(f"中文TTS播放失败，错误码: {code}")
-    # time.sleep(5)
+    # 2. TTS测试
+    print("\n2. TTS测试")
+    print("播放中文TTS...")
+    code = audio_client.TtsMaker("你好。我是宇树科技的机器人。例程启动成功", 0)
+    if code == 0:
+        print("中文TTS播放成功")
+    else:
+        print(f"中文TTS播放失败，错误码: {code}")
+    time.sleep(5)
     
     # print("播放英文TTS...")
     # code = audio_client.TtsMaker("Hello. I'm a robot from Unitree Robotics. The example has started successfully.", 1)
@@ -517,18 +517,18 @@ def main():
     #         print(f"LED控制失败，错误码: {code}")
     #     time.sleep(1)
     
-    # # 4. ASR测试
-    # print("\n4. ASR语音识别测试")
-    # print("初始化ASR消息订阅...")
-    # try:
-    #     subscriber = ChannelSubscriber(AUDIO_SUBSCRIBE_TOPIC, String_)
-    #     subscriber.Init(asr_handler)
-    #     print("ASR订阅初始化成功")
-    # except Exception as e:
-    #     print(f"ASR订阅初始化失败: {e}")
+    # 4. ASR测试
+    print("\n4. ASR语音识别测试")
+    print("初始化ASR消息订阅...")
+    try:
+        subscriber = ChannelSubscriber(AUDIO_SUBSCRIBE_TOPIC, String_)
+        subscriber.Init(asr_handler)
+        print("ASR订阅初始化成功")
+    except Exception as e:
+        print(f"ASR订阅初始化失败: {e}")
 
-    # print("ASR系统已启动，请对着机器人说话...")
-    # print("程序将持续运行，按Ctrl+C退出")
+    print("ASR系统已启动，请对着机器人说话...")
+    print("程序将持续运行，按Ctrl+C退出")
 
     # 5. 启动音频数据接收器
     print("\n5. 启动音频数据接收器")
