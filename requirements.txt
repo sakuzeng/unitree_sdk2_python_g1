@@ -13,4 +13,7 @@ pandas
 scikit-learn
 joblib
 matplotlib
-skimage
+scikit-image
+soundfile
+librosa
+deepfilternet
