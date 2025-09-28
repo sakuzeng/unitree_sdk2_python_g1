@@ -3,19 +3,23 @@
 Livox MID-360 雷达点云实时查看器
 
 本脚本使用 Open3D 库实时可视化来自 Livox MID-360 激光雷达的点云数据，
-并提供基本的交互功能。
+并提供基本的交互功能，同时支持 IMU 数据记录。
 
-运行前，请确保已正确安装 Livox SDK2 和相关 Python 依赖包 (requirements.txt)，
+运行前，请确保已正确安装 Livox SDK2 和相关 Python 依赖包 (numpy, open3d)，
 并验证 `livox2_python.py` 中导入的 `.so` 文件名称是否正确。
 
 效果:
     实时显示雷达点云数据，按 'ESC' 键或关闭窗口退出。
+    IMU 数据（可选）保存为 CSV 文件到 data/ 目录。
 
 基础流程:
-    1. SDK 在后台线程接收 UDP 数据并解析成点云。
-    2. 调用 `handle_points()` 回调函数进行数据预处理。
+    1. SDK 在后台线程接收 UDP 数据并解析成点云和 IMU 数据。
+    2. 调用 `handle_points()` 和 `handle_imu()` 回调函数进行数据预处理。
     3. `push()` 方法将处理后的点云帧存入环形缓冲区。
     4. 主线程通过 `tick()` 方法循环渲染，将合并后的点云显示到屏幕。
+
+环境变量配置:
+- LIVOX_MOUNT: 挂载方向 (normal/upside_down, 默认 upside_down)
 """
 from __future__ import annotations
 
@@ -23,6 +27,10 @@ import os
 import signal
 import time
 from typing import Optional
+from pathlib import Path
+import csv
+import numpy as np
+import open3d as o3d
 
 # ---------------------------------------------------------------------------
 # 挂载方向说明 (Mount Orientation)
@@ -40,8 +48,9 @@ MOUNT = os.environ.get("LIVOX_MOUNT", "upside_down").lower()
 if MOUNT not in {"normal", "upside_down"}:
     raise SystemExit("环境变量 LIVOX_MOUNT 的值必须是 'normal' 或 'upside_down'")
 
-import numpy as np
-import open3d as o3d
+# 数据保存目录
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # 动态导入 SDK 封装 (优先使用 SDK2)
@@ -49,7 +58,7 @@ import open3d as o3d
 try:
     from livox2_python import Livox2 as _Livox
     _SDK2 = True
-except ImportError as _e:  # pragma: no cover – SDK2 not present / not built
+except ImportError as _e:
     print(f"[INFO] livox2_python 不可用 ({_e}) – 切换至 SDK1。")
     from livox_python import Livox as _Livox
     _SDK2 = False
@@ -69,7 +78,7 @@ class _Viewer:
         """
         self._vis = o3d.visualization.Visualizer()
         self._vis.create_window(window_name="Livox – live point-cloud", width=1280, height=720)
-        self._is_alive = True  # 添加窗口状态标志
+        self._is_alive = True
 
         # 使用环形缓冲区合并最近的 N 帧点云，以减少稀疏扫描带来的闪烁感，
         # 形成一个更稳定、更密集的点云视图。
@@ -111,7 +120,7 @@ class _Viewer:
             bool: 如果可视化窗口仍然存活，返回 True；否则返回 False。
         """
         if not self._is_alive:
-            return False  # 窗口已关闭，返回 False 结束主循环
+            return False
 
         if self._frames:
             # 合并所有帧并更新点云几何体
@@ -147,17 +156,28 @@ class LiveViewer(_Livox):
         """
         根据 SDK 版本初始化 Livox 连接。
         """
-        # SDK2 需要 JSON 配置文件路径，而 SDK1 不需要。
+        # 初始化 IMU 数据保存
+        self._imu_csv = DATA_DIR / "imu_data.csv"
+        self._imu_count = 0
+        self._imu_buffer: list[tuple[np.ndarray, int]] = []
+        with open(self._imu_csv, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['timestamp', 'gx', 'gy', 'gz', 'ax', 'ay', 'az'])
+
+        # SDK2 需要 JSON 配置文件路径和帧聚合参数
         if _SDK2:
-            # 注意: 此处 IP 地址可能需要根据实际情况修改。
-            # 默认主机 IP 为 192.168.123.164，此处示例为 222。
-            super().__init__("mid360_config.json", host_ip="192.168.123.164")
+            super().__init__(
+                "mid360_config.json",
+                host_ip="192.168.123.164",
+                frame_time=0.1,  # 降低以适配 G-1
+                frame_packets=60  # 减少以降低 CPU 负载
+            )
         else:
             super().__init__()  # SDK1 无需参数
 
         self._view = _Viewer()
 
-    def handle_points(self, xyz: np.ndarray):
+    def handle_points(self, xyz: np.ndarray, reflectivity: np.ndarray, tag: np.ndarray, timestamp: int):
         """
         SDK 的点云数据回调函数，在后台线程中运行。
 
@@ -165,7 +185,10 @@ class LiveViewer(_Livox):
         然后将其推送到可视化器。
 
         Args:
-            xyz (np.ndarray): 从 SDK 收到的原始点云数据。
+            xyz (np.ndarray): 原始点云数据 (N, 3)。
+            reflectivity (np.ndarray): 反射强度 (N,)。
+            tag (np.ndarray): 标签 (N,)。
+            timestamp (int): 时间戳 (ns)。
         """
         # 根据挂载方向进行坐标校正。
         if MOUNT == "upside_down":
@@ -173,15 +196,44 @@ class LiveViewer(_Livox):
             xyz = xyz * np.array([1.0, -1.0, -1.0], dtype=xyz.dtype)
 
         # 对过于密集的帧进行下采样，以保证渲染流畅。
-        # 15万点/秒对于预览已足够。
+        # 10万点/秒对于预览已足够。
         if xyz.shape[0] > 100_000:
             step = xyz.shape[0] // 100_000
-            xyz = xyz[:: step]
+            xyz = xyz[::step]
 
         self._view.push(xyz)
 
+    def handle_imu(self, imu_data: np.ndarray, timestamp: int):
+        """
+        SDK 的 IMU 数据回调函数，在后台线程中运行。
+
+        Args:
+            imu_data (np.ndarray): IMU 数据 (N, 6)，包含 [gx, gy, gz, ax, ay, az]。
+            timestamp (int): 时间戳 (ns)。
+        """
+        self._imu_buffer.append((imu_data, timestamp))
+        self._imu_count += len(imu_data)
+        if len(self._imu_buffer) >= 100:  # 每 100 个样本写入
+            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                for data, ts in self._imu_buffer:
+                    for row in data:
+                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+            print(f"[INFO] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+            self._imu_buffer = []
+
     def shutdown(self):
-        """关闭 SDK 连接并销毁可视化窗口。"""
+        """关闭 SDK 连接并销毁可视化窗口，保存剩余 IMU 数据。"""
+        # 保存缓冲中的 IMU 数据
+        if self._imu_buffer:
+            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                for data, ts in self._imu_buffer:
+                    for row in data:
+                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+            print(f"[INFO] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+            self._imu_buffer = []
+
         super().shutdown()
         self._view.close()
 
@@ -193,6 +245,8 @@ def main():
     初始化 `LiveViewer`，设置信号处理以捕获 Ctrl-C，
     并进入主循环直到用户退出。
     """
+    print(f"[INFO] 启动 Livox 点云查看器 (挂载: {MOUNT})")
+    print(f"[INFO] IMU 数据将保存到: {DATA_DIR.absolute() / 'imu_data.csv'}")
     lidar = LiveViewer()
     stop = False
 

@@ -1,0 +1,30 @@
+{
+  "session_info": {
+    "start_time": "2025-09-26T18:09:18.807381",
+    "end_time": "2025-09-26T18:09:51.125019",
+    "duration_seconds": 32.317638,
+    "preset": "indoor",
+    "mount": "upside_down",
+    "total_frames_processed": 30,
+    "total_imu_samples": 483
+  },
+  "slam_config": {
+    "voxel_size": 0.4,
+    "max_range": 30.0,
+    "min_motion": 0.03,
+    "frame_time": 0.1,
+    "frame_packets": 60
+  },
+  "correction_settings": {
+    "mount_correction": "upside_down",
+    "tilt_axis": "y",
+    "tilt_degrees": 0.0,
+    "self_filter_radius": 0.2,
+    "self_filter_z": 0.15
+  },
+  "statistics": {
+    "trajectory_poses": 30,
+    "final_map_points": 2480,
+    "imu_samples": 483
+  }
+}

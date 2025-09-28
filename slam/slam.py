@@ -3,13 +3,14 @@
 livox_slam_2d.py - 实时 Livox MID-360 SLAM 2D 可视化程序
 
 功能:
-- 从 Livox MID-360 激光雷达获取原始点云数据。
+- 从 Livox MID-360 激光雷达获取原始点云和 IMU 数据。
 - 使用 KISS-ICP 进行实时 SLAM 处理。
 - 生成三种 2D 可视化：
   1. 原始点云（x-y 平面散点图，蓝色点）。
   2. SLAM 2D 投影（绿色点，白色边框）。
   3. 占用网格（白色=占用，黑色=自由，灰色=未知）。
 - 在 OpenCV 窗口中水平拼接显示（1440x480），支持 ESC/q 退出。
+- 保存 IMU 数据到 CSV 文件。
 
 依赖:
 - numpy, opencv-python
@@ -38,6 +39,7 @@ import time
 import numpy as np
 import cv2
 from pathlib import Path
+import csv
 
 # 动态导入依赖
 try:
@@ -51,6 +53,10 @@ try:
 except ImportError as exc:
     print("[livox_slam_2d] 错误: 'livox2_python' 未找到。请确保 livox2_python.py 存在且 Livox SDK2 已安装。")
     sys.exit(1)
+
+# 数据保存目录
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
 
 # 共享状态
 _state_lock = threading.Lock()
@@ -68,7 +74,7 @@ class MiniViewer:
         self._grid_size = grid_size  # 网格分辨率（米）
         self._grid_threshold = grid_threshold  # 占用阈值（点数）
 
-    def push(self, xyz: np.ndarray, _pose: np.ndarray) -> None:
+    def push(self, xyz: np.ndarray, pose: np.ndarray) -> None:
         """存储最新的点云数据（线程安全）。"""
         with _state_lock:
             self._latest_pts = xyz.copy()
@@ -153,8 +159,8 @@ def run_slam(stop: threading.Event, config_path: str | Path, host_ip: str, grid_
         monkey_patch_slam_viewer(grid_size, grid_threshold)
         demo = LiveSLAMDemo()
 
-        # 初始化 Livox2 以确保点云数据流入
-        lidar = Livox2(config_path, host_ip)
+        # 初始化 Livox2 以确保点云和 IMU 数据流入
+        lidar = Livox2(config_path, host_ip, frame_time=0.1, frame_packets=60)
 
         while not stop.is_set():
             if not demo._viewer.tick():
@@ -224,14 +230,14 @@ def compose_canvas() -> np.ndarray | None:
 
 # 主函数
 def main() -> None:
-    """主函数：初始化 SLAM，显示三种 2D 视图。"""
+    """主函数：初始化 SLAM，显示三种 2D 视图，保存 IMU 数据。"""
     parser = argparse.ArgumentParser(
         description="Livox MID-360 实时 SLAM 2D 可视化（原始点云、2D 投影、占用网格）",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--config", type=str, default="mid360_config.json",
                         help="Livox SDK 配置 JSON 文件路径")
-    parser.add_argument("--host-ip", type=str, default="192.168.123.222",
+    parser.add_argument("--host-ip", type=str, default="192.168.123.164",
                         help="主机 IP 地址")
     parser.add_argument("--grid-size", type=float, default=0.1,
                         help="占用网格分辨率（米）")
@@ -253,7 +259,8 @@ def main() -> None:
         args=(stop, args.config, args.host_ip, args.grid_size, args.grid_threshold),
         daemon=True
     )
-    print("[livox_slam_2d] 启动 SLAM 线程...")
+    print(f"[livox_slam_2d] 启动 SLAM 线程 (主机 IP: {args.host_ip})...")
+    print(f"[livox_slam_2d] IMU 数据将保存到: {DATA_DIR / 'imu_data.csv'}")
     slam_thread.start()
 
     # 显示 OpenCV 窗口
