@@ -11,6 +11,7 @@ Livox-SDK2 Python 封装 (Push 模式，无广播)
 - 提供点云数据的聚合和批量处理功能。
 - 支持 IMU 数据通过点云回调处理（data_type=0）。
 - 支持多雷达设置（未测试）。
+- 显式加入组播组以接收 LiDAR 数据，基于提供的 JSON 配置文件。
 
 使用方法:
 1. 安装 Livox-SDK2:
@@ -28,6 +29,8 @@ import os
 import sys
 import threading
 import time
+import socket
+import struct
 from ctypes import (
     POINTER,
     c_char_p,
@@ -198,9 +201,29 @@ class Livox2:
         """
         self._C = _C  # 保存 ctypes 模块
         self._config_path = os.fspath(config_path).encode()
+        self._host_ip = host_ip
+        self._sockets = []  # 保存组播套接字
 
+        # 加载配置文件以获取组播地址和端口
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            mid360_config = config.get('MID360', {})
+            host_net_info = mid360_config.get('host_net_info', [{}])[0]
+            self._multicast_ip = host_net_info.get('multicast_ip', '224.1.1.5')
+            self._ports = {
+                'point_data_port': host_net_info.get('point_data_port', 56301),
+                'imu_data_port': host_net_info.get('imu_data_port', 56401),
+            }
+        except Exception as e:
+            raise RuntimeError(f"无法读取或解析配置文件 {config_path}: {e}")
+
+        # 初始化 Livox SDK
         if not _lib.LivoxLidarSdkInit(self._config_path, host_ip.encode(), None):
             raise RuntimeError("LivoxLidarSdkInit 初始化失败，请检查配置文件和 JSON 格式。")
+
+        # 设置组播
+        self._setup_multicast()
 
         # 注册点云回调（包括 IMU 数据）
         self._point_cb = _PointCb(self._on_packet)
@@ -212,12 +235,35 @@ class Livox2:
         _lib.SetLivoxLidarInfoChangeCallback(self._info_cb, None)
 
         # 启动 SDK
-        _lib.LivoxLidarSdkStart()
+        if not _lib.LivoxLidarSdkStart():
+            raise RuntimeError("LivoxLidarSdkStart 启动失败")
 
         self._running = True
         self._frame_time = float(frame_time)
         self._frame_packets = int(frame_packets)
         self._frame_state = {}  # 帧聚合状态
+
+    def _setup_multicast(self):
+        """
+        配置本机加入组播组以接收点云和 IMU 数据。
+        """
+        for port_name, port in self._ports.items():
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                # 绑定到组播端口
+                sock.bind(('', port))
+                # 加入组播组
+                group = socket.inet_aton(self._multicast_ip)
+                mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                # 设置接收超时（可选）
+                sock.settimeout(5.0)
+                self._sockets.append(sock)
+                print(f"[Livox2] 成功加入组播组 {self._multicast_ip}:{port} ({port_name})")
+            except socket.error as e:
+                print(f"[Livox2] 组播配置失败 ({port_name}): {e}", file=sys.stderr)
+                raise RuntimeError(f"无法加入组播组 {self._multicast_ip}:{port}: {e}")
 
     def spin(self):
         """阻塞主线程，直到用户按下 Ctrl-C。"""
@@ -225,14 +271,21 @@ class Livox2:
             while self._running:
                 time.sleep(0.01)
         except KeyboardInterrupt:
-            pass
+            print("[Livox2] 收到 Ctrl-C，正在关闭...")
         finally:
             self.shutdown()
 
     def shutdown(self):
-        """安全关闭 Livox SDK。"""
+        """安全关闭 Livox SDK 和组播套接字。"""
         if self._running:
+            print("[Livox2] 正在关闭 Livox SDK 和组播套接字...")
             _lib.LivoxLidarSdkUninit()
+            for sock in self._sockets:
+                try:
+                    sock.close()
+                except socket.error as e:
+                    print(f"[Livox2] 关闭套接字失败: {e}", file=sys.stderr)
+            self._sockets = []
             self._running = False
 
     def handle_points(self, xyz: np.ndarray, reflectivity: np.ndarray, tag: np.ndarray, timestamp: int):
@@ -245,7 +298,7 @@ class Livox2:
             tag (np.ndarray): 标签，形状 (N,)，用于噪声过滤。
             timestamp (int): 数据包时间戳，单位：ns。
         """
-        print(f"接收到 {len(xyz)} 个点，时间戳: {timestamp}")
+        print(f"[Livox2] 接收到 {len(xyz)} 个点，时间戳: {timestamp}")
 
     def handle_imu(self, imu_data: np.ndarray, timestamp: int):
         """
@@ -255,7 +308,7 @@ class Livox2:
             imu_data (np.ndarray): IMU 数据，形状 (N, 6)，包含 [gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z]。
             timestamp (int): 数据包时间戳，单位：ns。
         """
-        print(f"接收到 {len(imu_data)} 个 IMU 样本，时间戳: {timestamp}")
+        print(f"[Livox2] 接收到 {len(imu_data)} 个 IMU 样本，时间戳: {timestamp}")
 
     def _on_packet(self, handle: int, dev_type: int, pkt_ptr, _client):
         """
@@ -277,7 +330,7 @@ class Livox2:
             try:
                 self.handle_imu(imu_data, timestamp)
             except Exception as exc:
-                print(f"Exception in handle_imu: {exc}", file=sys.stderr)
+                print(f"[Livox2] Exception in handle_imu: {exc}", file=sys.stderr)
             return
 
         if pkt.data_type == 1:  # 高精度笛卡尔
@@ -332,7 +385,7 @@ class Livox2:
             try:
                 self.handle_points(frame_xyz, frame_ref, frame_tag, timestamp)
             except Exception as exc:
-                print(f"Exception in handle_points: {exc}", file=sys.stderr)
+                print(f"[Livox2] Exception in handle_points: {exc}", file=sys.stderr)
 
             print(f"[Livox2] frame {frame_xyz.shape[0]} pts (Δt={elapsed*1000:.1f} ms)")
             buf_xyz, buf_ref, buf_tag = [], [], []
@@ -355,9 +408,9 @@ if __name__ == "__main__":
     if not cfg.exists():
         host_ip = os.environ.get("HOST_IP", "192.168.123.164")
         data = {
-            "lidar_summary_info": {"lidar_type": 8},
             "MID360": {
                 "lidar_net_info": {
+                    "lidar_ip": "192.168.123.120",
                     "cmd_data_port": 56100,
                     "push_msg_port": 56200,
                     "point_data_port": 56300,
@@ -373,22 +426,6 @@ if __name__ == "__main__":
                         "point_data_port": 56301,
                         "imu_data_port": 56401,
                         "log_data_port": 56501,
-                    }
-                ],
-                "lidar_configs": [
-                    {
-                        "ip": "192.168.123.120",
-                        "pcl_data_type": 1,
-                        "pattern_mode": 0,
-                        "imu_data_en": 1,
-                        "extrinsic_parameter": {
-                            "roll": 0.0,
-                            "pitch": 0.0,
-                            "yaw": 0.0,
-                            "x": 0,
-                            "y": 0,
-                            "z": 0
-                        }
                     }
                 ]
             }

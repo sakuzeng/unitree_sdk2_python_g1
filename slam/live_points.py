@@ -3,19 +3,19 @@
 Livox MID-360 雷达点云实时查看器
 
 本脚本使用 Open3D 库实时可视化来自 Livox MID-360 激光雷达的点云数据，
-并提供基本的交互功能，同时支持 IMU 数据记录。
+并提供基本的交互功能，同时支持 IMU 数据记录。点云颜色基于反射强度 (reflectivity) 显示。
 
-运行前，请确保已正确安装 Livox SDK2 和相关 Python 依赖包 (numpy, open3d)，
+运行前，请确保已正确安装 Livox-SDK2 和相关 Python 依赖包 (numpy, open3d)，
 并验证 `livox2_python.py` 中导入的 `.so` 文件名称是否正确。
 
 效果:
-    实时显示雷达点云数据，按 'ESC' 键或关闭窗口退出。
-    IMU 数据（可选）保存为 CSV 文件到 data/ 目录。
+    实时显示带颜色的雷达点云数据（反射强度从深蓝色到白色），按 'ESC' 键或关闭窗口退出。
+    IMU 数据保存为 CSV 文件到 data/ 目录。
 
 基础流程:
     1. SDK 在后台线程接收 UDP 数据并解析成点云和 IMU 数据。
     2. 调用 `handle_points()` 和 `handle_imu()` 回调函数进行数据预处理。
-    3. `push()` 方法将处理后的点云帧存入环形缓冲区。
+    3. `push()` 方法将处理后的点云帧（含颜色）存入环形缓冲区。
     4. 主线程通过 `tick()` 方法循环渲染，将合并后的点云显示到屏幕。
 
 环境变量配置:
@@ -31,6 +31,7 @@ from pathlib import Path
 import csv
 import numpy as np
 import open3d as o3d
+import json
 
 # ---------------------------------------------------------------------------
 # 挂载方向说明 (Mount Orientation)
@@ -53,36 +54,31 @@ DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# 动态导入 SDK 封装 (优先使用 SDK2)
+# 导入 Livox-SDK2 封装
 # ---------------------------------------------------------------------------
 try:
     from livox2_python import Livox2 as _Livox
-    _SDK2 = True
-except ImportError as _e:
-    print(f"[INFO] livox2_python 不可用 ({_e}) – 切换至 SDK1。")
-    from livox_python import Livox as _Livox
-    _SDK2 = False
-
+except ImportError as e:
+    raise SystemExit(f"[错误] 无法导入 livox2_python 模块: {e}\n请确保 livox2_python.py 存在并已正确安装 Livox-SDK2。")
 
 class _Viewer:
     """
     一个由主线程驱动的最小化 Open3D 可视化器。
 
     此类不直接与 SDK 交互，而是提供一个简单的接口，用于在主循环中
-    接收点云数据并更新渲染。
+    接收点云数据（含颜色）并更新渲染。
     """
-
     def __init__(self):
         """
         初始化可视化器窗口、点云对象和环形缓冲区。
         """
         self._vis = o3d.visualization.Visualizer()
-        self._vis.create_window(window_name="Livox – live point-cloud", width=1280, height=720)
+        self._vis.create_window(window_name="Livox – 实时点云", width=1280, height=720)
         self._is_alive = True
 
         # 使用环形缓冲区合并最近的 N 帧点云，以减少稀疏扫描带来的闪烁感，
         # 形成一个更稳定、更密集的点云视图。
-        self._frames: list[np.ndarray] = []
+        self._frames: list[tuple[np.ndarray, np.ndarray]] = []  # 存储 (xyz, colors) 对
         self._max_frames = 15  # 在 20Hz 下约等于 0.75 秒的累积数据
 
         self._pcd = o3d.geometry.PointCloud()
@@ -98,14 +94,15 @@ class _Viewer:
 
         self._first = True
 
-    def push(self, xyz: np.ndarray):
+    def push(self, xyz: np.ndarray, colors: np.ndarray):
         """
-        从任意(SDK)后台线程接收新的点云帧并将其添加到环形缓冲区。
+        从任意(SDK)后台线程接收新的点云帧及其颜色并添加到环形缓冲区。
 
         Args:
             xyz (np.ndarray): 新的点云帧数据 (N, 3)。
+            colors (np.ndarray): 点云颜色数据 (N, 3)，RGB 范围 [0, 1]。
         """
-        self._frames.append(xyz)
+        self._frames.append((xyz, colors))
         # 当缓冲区满时，丢弃最旧的帧。
         if len(self._frames) > self._max_frames:
             self._frames.pop(0)
@@ -114,7 +111,7 @@ class _Viewer:
         """
         在主线程中执行的单次渲染更新。
 
-        合并缓冲区中的所有点云帧，更新几何体，并处理窗口事件。
+        合并缓冲区中的所有点云帧及其颜色，更新几何体，并处理窗口事件。
 
         Returns:
             bool: 如果可视化窗口仍然存活，返回 True；否则返回 False。
@@ -123,9 +120,12 @@ class _Viewer:
             return False
 
         if self._frames:
-            # 合并所有帧并更新点云几何体
-            merged = np.concatenate(self._frames, axis=0)
-            self._pcd.points = o3d.utility.Vector3dVector(merged)
+            # 合并所有帧的点云和颜色
+            xyz_list, color_list = zip(*self._frames)
+            merged_xyz = np.concatenate(xyz_list, axis=0)
+            merged_colors = np.concatenate(color_list, axis=0)
+            self._pcd.points = o3d.utility.Vector3dVector(merged_xyz)
+            self._pcd.colors = o3d.utility.Vector3dVector(merged_colors)
             self._vis.update_geometry(self._pcd)
             if self._first:
                 # 首次更新时，自动调整视角以适应点云。
@@ -146,16 +146,48 @@ class _Viewer:
         """销毁可视化窗口。"""
         self._vis.destroy_window()
 
-
 class LiveViewer(_Livox):
     """
     Livox SDK 的封装类，将 SDK 回调与 `_Viewer` 可视化器连接起来。
     """
+    def __init__(self, config_path: str = "mid360_config.json", host_ip: str = "192.168.123.164"):
+        """
+        初始化 Livox 连接和 Open3D 可视化器。
 
-    def __init__(self):
+        Args:
+            config_path (str): JSON 配置文件路径。
+            host_ip (str): 主机 IP 地址。
         """
-        根据 SDK 版本初始化 Livox 连接。
-        """
+        # 检查配置文件是否存在
+        cfg = Path(config_path)
+        if not cfg.exists():
+            host_ip = os.environ.get("HOST_IP", host_ip)
+            data = {
+                "MID360": {
+                    "lidar_net_info": {
+                        "lidar_ip": "192.168.123.120",
+                        "cmd_data_port": 56100,
+                        "push_msg_port": 56200,
+                        "point_data_port": 56300,
+                        "imu_data_port": 56400,
+                        "log_data_port": 56500,
+                    },
+                    "host_net_info": [
+                        {
+                            "host_ip": host_ip,
+                            "multicast_ip": "224.1.1.5",
+                            "cmd_data_port": 56101,
+                            "push_msg_port": 56201,
+                            "point_data_port": 56301,
+                            "imu_data_port": 56401,
+                            "log_data_port": 56501,
+                        }
+                    ]
+                }
+            }
+            cfg.write_text(json.dumps(data, indent=2))
+            print(f"[LiveViewer] 默认配置文件已生成: {config_path}")
+
         # 初始化 IMU 数据保存
         self._imu_csv = DATA_DIR / "imu_data.csv"
         self._imu_count = 0
@@ -164,16 +196,13 @@ class LiveViewer(_Livox):
             writer = csv.writer(f)
             writer.writerow(['timestamp', 'gx', 'gy', 'gz', 'ax', 'ay', 'az'])
 
-        # SDK2 需要 JSON 配置文件路径和帧聚合参数
-        if _SDK2:
-            super().__init__(
-                "mid360_config.json",
-                host_ip="192.168.123.164",
-                frame_time=0.1,  # 降低以适配 G-1
-                frame_packets=60  # 减少以降低 CPU 负载
-            )
-        else:
-            super().__init__()  # SDK1 无需参数
+        # 初始化 Livox2
+        super().__init__(
+            config_path,
+            host_ip=host_ip,
+            frame_time=0.1,  # 降低以适配 G-1
+            frame_packets=60  # 减少以降低 CPU 负载
+        )
 
         self._view = _Viewer()
 
@@ -182,11 +211,11 @@ class LiveViewer(_Livox):
         SDK 的点云数据回调函数，在后台线程中运行。
 
         此方法负责对原始点云数据进行预处理（方向校正、下采样），
-        然后将其推送到可视化器。
+        并基于反射强度生成颜色，然后推送到可视化器。
 
         Args:
             xyz (np.ndarray): 原始点云数据 (N, 3)。
-            reflectivity (np.ndarray): 反射强度 (N,)。
+            reflectivity (np.ndarray): 反射强度 (N,)，范围 0-255。
             tag (np.ndarray): 标签 (N,)。
             timestamp (int): 时间戳 (ns)。
         """
@@ -200,8 +229,16 @@ class LiveViewer(_Livox):
         if xyz.shape[0] > 100_000:
             step = xyz.shape[0] // 100_000
             xyz = xyz[::step]
+            reflectivity = reflectivity[::step]
 
-        self._view.push(xyz)
+        # 基于反射强度生成颜色（从深蓝色到白色）
+        norm_reflectivity = reflectivity / 255.0  # 归一化到 [0, 1]
+        colors = np.zeros((xyz.shape[0], 3), dtype=np.float32)
+        colors[:, 0] = norm_reflectivity  # R: 0 -> 1
+        colors[:, 1] = norm_reflectivity  # G: 0 -> 1
+        colors[:, 2] = 0.5 + 0.5 * norm_reflectivity  # B: 0.5 -> 1
+
+        self._view.push(xyz, colors)
 
     def handle_imu(self, imu_data: np.ndarray, timestamp: int):
         """
@@ -219,7 +256,7 @@ class LiveViewer(_Livox):
                 for data, ts in self._imu_buffer:
                     for row in data:
                         writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            print(f"[INFO] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+            print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
             self._imu_buffer = []
 
     def shutdown(self):
@@ -231,12 +268,11 @@ class LiveViewer(_Livox):
                 for data, ts in self._imu_buffer:
                     for row in data:
                         writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            print(f"[INFO] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+            print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
             self._imu_buffer = []
 
         super().shutdown()
         self._view.close()
-
 
 def main():
     """
@@ -245,15 +281,15 @@ def main():
     初始化 `LiveViewer`，设置信号处理以捕获 Ctrl-C，
     并进入主循环直到用户退出。
     """
-    print(f"[INFO] 启动 Livox 点云查看器 (挂载: {MOUNT})")
-    print(f"[INFO] IMU 数据将保存到: {DATA_DIR.absolute() / 'imu_data.csv'}")
+    print(f"[LiveViewer] 启动 Livox 点云查看器 (挂载: {MOUNT})")
+    print(f"[LiveViewer] IMU 数据将保存到: {DATA_DIR.absolute() / 'imu_data.csv'}")
     lidar = LiveViewer()
     stop = False
 
     def _sigint_handler(*_):
         """信号处理函数，用于设置停止标志。"""
         nonlocal stop
-        print("\n正在关闭...")
+        print("\n[LiveViewer] 收到 Ctrl-C，正在关闭...")
         stop = True
 
     signal.signal(signal.SIGINT, _sigint_handler)
@@ -264,7 +300,6 @@ def main():
             time.sleep(0.01)  # 降低 CPU 使用率
     finally:
         lidar.shutdown()
-
 
 if __name__ == "__main__":
     main()
