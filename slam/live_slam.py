@@ -1,310 +1,778 @@
 #!/usr/bin/env python3
 """
-Livox MID-360 雷达点云实时查看器（集成 KISS-ICP）
+Livox MID-360 激光雷达实时 SLAM 演示程序 (改进版，集成 2D 占用网格)
 
-本脚本使用 Open3D 库实时可视化来自 Livox MID-360 激光雷达的点云数据，
-并通过 KISS-ICP 进行里程计估计，生成传感器位姿轨迹和全局点云地图。
-点云颜色基于反射强度显示，IMU 数据保存为 CSV 文件。
-
-运行前，请确保已安装 Livox-SDK2、numpy、open3d、kiss-icp，
-并验证 `livox2_python.py` 中导入的 `.so` 文件名称正确。
-
-效果:
-    - 实时显示配准后的点云（世界坐标系，颜色从深蓝色到白色）。
-    - 保存位姿轨迹到 data/trajectory.csv。
-    - 保存全局点云地图到 data/map.pcd。
-    - IMU 数据保存到 data/imu_data.csv。
-    - 按 'ESC' 键或关闭窗口退出。
-
-环境变量配置:
-- LIVOX_MOUNT: 挂载方向 (normal/upside_down, 默认 upside_down)
+改进特性:
+- 严格的 KISS-ICP 配置优化
+- 增强的点云质量检查和预处理
+- ICP 配准质量验证
+- 自适应参数调整
+- 更好的初始化和错误恢复机制
+- 实时 2D 占用网格生成和可视化
 """
+
 from __future__ import annotations
 
-import os
 import signal
 import time
-from typing import Optional
 from pathlib import Path
+from datetime import datetime
+import json
 import csv
 import numpy as np
 import open3d as o3d
-import json
-from kiss_icp import Odometry
+from typing import Optional, Dict, Any, List
+import os
+import math
+import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
-# 挂载方向说明
+# 数据保存配置
 # ---------------------------------------------------------------------------
-MOUNT = os.environ.get("LIVOX_MOUNT", "upside_down").lower()
 
-if MOUNT not in {"normal", "upside_down"}:
-    raise SystemExit("环境变量 LIVOX_MOUNT 的值必须是 'normal' 或 'upside_down'")
-
-# 数据保存目录
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
 
+MAP_FORMATS = {
+    "ply": "PLY 格式 (推荐)",
+    "pcd": "PCD 格式",
+    "xyz": "纯坐标文本格式"
+}
+
+DEFAULT_MAP_FORMAT = os.environ.get("MAP_SAVE_FORMAT", "ply").lower()
+if DEFAULT_MAP_FORMAT not in MAP_FORMATS:
+    print(f"[WARNING] 未知的地图格式 '{DEFAULT_MAP_FORMAT}'，使用默认格式 'ply'")
+    DEFAULT_MAP_FORMAT = "ply"
+
+# 占用网格参数
+GRID_RESOLUTION = 0.1  # 每格 0.1 米
+GRID_SIZE = 1000  # 网格尺寸 1000x1000 格（±50 米）
+GRID_MIN = -50.0  # X-Y 范围：[-50, 50] 米
+GRID_MAX = 50.0
+
 # ---------------------------------------------------------------------------
-# 导入 Livox-SDK2 封装
+# 挂载方向校正配置
 # ---------------------------------------------------------------------------
+
+_VALID_MOUNTS = {"normal", "upside_down"}
+MOUNT = os.environ.get("LIVOX_MOUNT", "upside_down").lower()
+if MOUNT not in _VALID_MOUNTS:
+    raise SystemExit(f"LIVOX_MOUNT 必须是 {_VALID_MOUNTS} 中的一个")
+
+_TILT_AXIS = os.environ.get("LIDAR_TILT_AXIS", "y").lower()
+if _TILT_AXIS not in {"x", "y", "z"}:
+    raise SystemExit("LIDAR_TILT_AXIS 必须是 'x', 'y', 'z' 中的一个")
+
+try:
+    _TILT_DEG = float(os.environ.get("LIDAR_TILT_DEG", "0"))
+except ValueError:
+    _TILT_DEG = 0.0
+
+_R_MOUNT = None
+
+_R_FLIP = np.diag([1.0, -1.0, -1.0, 1.0]) if MOUNT == "upside_down" else np.eye(4)
+
+if abs(_TILT_DEG) > 1e-3:
+    _rad = math.radians(-_TILT_DEG)
+    c, s = math.cos(_rad), math.sin(_rad)
+    if _TILT_AXIS == "x":
+        _R_TILT = np.array([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, c, -s, 0.0],
+            [0.0, s, c, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ], dtype=float)
+    elif _TILT_AXIS == "y":
+        _R_TILT = np.array([
+            [c, 0.0, s, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [-s, 0.0, c, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ], dtype=float)
+    else:
+        _R_TILT = np.array([
+            [c, -s, 0.0, 0.0],
+            [s, c, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ], dtype=float)
+else:
+    _R_TILT = np.eye(4)
+
+_R_TOTAL = _R_TILT @ _R_FLIP
+if not np.allclose(_R_TOTAL, np.eye(4)):
+    _R_MOUNT = _R_TOTAL
+
+# ---------------------------------------------------------------------------
+# KISS-ICP 导入逻辑
+# ---------------------------------------------------------------------------
+
+KissICP = None
+_IMPORT_ERRORS = []
+
+try:
+    from kiss_icp.pipeline import KissICP
+except Exception as e:
+    _IMPORT_ERRORS.append(e)
+
+if KissICP is None:
+    try:
+        from kiss_icp.pybind import KissICP
+    except Exception as e:
+        _IMPORT_ERRORS.append(e)
+
+if KissICP is None:
+    _msgs = " | ".join(str(e) for e in _IMPORT_ERRORS)
+    raise SystemExit(
+        "无法导入 KISS-ICP (尝试了 kiss_icp.pipeline 和 kiss_icp.pybind).\n"
+        "包缺失或损坏。请安装/升级:\n"
+        "    pip install --upgrade 'kiss-icp'\n\n详细信息: "
+        + _msgs
+    )
+
 try:
     from livox2_python import Livox2 as _Livox
-except ImportError as e:
-    raise SystemExit(f"[错误] 无法导入 livox2_python 模块: {e}\n请确保 livox2_python.py 存在并已正确安装 Livox-SDK2。")
+except Exception as e:
+    print("[INFO] livox2_python 不可用 (", e, ") – 回退到 SDK1.")
+    from livox_python import Livox as _Livox
 
-class _Viewer:
-    """
-    一个由主线程驱动的最小化 Open3D 可视化器。
-    """
-    def __init__(self):
-        """
-        初始化可视化器窗口、点云对象和环形缓冲区。
-        """
-        self._vis = o3d.visualization.Visualizer()
-        self._vis.create_window(window_name="Livox – 实时点云 (KISS-ICP)", width=1280, height=720)
-        self._is_alive = True
+# ---------------------------------------------------------------------------
+# 改进的场景预设配置
+# ---------------------------------------------------------------------------
 
-        # 环形缓冲区合并最近 N 帧点云
-        self._frames: list[tuple[np.ndarray, np.ndarray]] = []  # 存储 (xyz, colors) 对
-        self._max_frames = 15  # 约 0.75 秒累积数据
+PRESET = os.environ.get("LIVOX_PRESET", "indoor").lower()
 
-        self._pcd = o3d.geometry.PointCloud()
-        self._vis.add_geometry(self._pcd)
+_PRESETS: Dict[str, Dict[str, Any]] = {
+    "indoor": {
+        "frame_time": 0.1,
+        "frame_packets": 50,
+        "voxel_size": 0.25,
+        "max_range": 25.0,
+        "min_range": 0.5,
+        "max_points_per_voxel": 10,
+        "max_num_iterations": 100,
+        "convergence_criterion": 1e-5,
+        "max_num_threads": 0,
+        "initial_threshold": 1.0,
+        "min_motion_th": 0.05,
+        "deskew": True,
+        "downsample_limit": 2_000_000,
+    },
+    "outdoor": {
+        "frame_time": 0.1,
+        "frame_packets": 80,
+        "voxel_size": 0.5,
+        "max_range": 100.0,
+        "min_range": 1.0,
+        "max_points_per_voxel": 15,
+        "max_num_iterations": 50,
+        "convergence_criterion": 5e-5,
+        "max_num_threads": 0,
+        "initial_threshold": 2.0,
+        "min_motion_th": 0.1,
+        "deskew": True,
+        "downsample_limit": 3_000_000,
+    },
+}
 
-        # 静态坐标系表示传感器位置
-        origin_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.3)
-        if MOUNT == "upside_down":
-            R180 = np.diag([1.0, -1.0, -1.0, 1.0])
-            origin_frame.transform(R180)
-        self._vis.add_geometry(origin_frame)
+if PRESET not in _PRESETS:
+    raise SystemExit(f"未知预设 '{PRESET}'. 请选择 {list(_PRESETS.keys())} 中的一个.")
 
-        self._first = True
+_P = _PRESETS[PRESET]
 
-    def push(self, xyz: np.ndarray, colors: np.ndarray):
-        """
-        接收新点云帧及其颜色，添加到环形缓冲区。
+# ---------------------------------------------------------------------------
+# 2D 占用网格管理器
+# ---------------------------------------------------------------------------
 
-        Args:
-            xyz (np.ndarray): 点云数据 (N, 3)，世界坐标系。
-            colors (np.ndarray): 点云颜色 (N, 3)，RGB 范围 [0, 1]。
-        """
-        self._frames.append((xyz, colors))
-        if len(self._frames) > self._max_frames:
-            self._frames.pop(0)
+class OccupancyGrid:
+    def __init__(self, resolution: float = GRID_RESOLUTION, size: int = GRID_SIZE, min_coord: float = GRID_MIN, max_coord: float = GRID_MAX):
+        self.resolution = resolution
+        self.size = size
+        self.min_coord = min_coord
+        self.max_coord = max_coord
+        self.grid = np.full((size, size), 50, dtype=np.uint8)
+        plt.ion()
+        self.fig, self.ax = plt.subplots(figsize=(8, 8))
+        self.ax.set_title("实时 2D 占用网格")
+        self.ax.set_xlabel("X (m)")
+        self.ax.set_ylabel("Y (m)")
+        self.im = self.ax.imshow(
+            self.grid, cmap='gray', vmin=0, vmax=100,
+            extent=[min_coord, max_coord, min_coord, max_coord],
+            origin='lower'
+        )
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
-    def tick(self) -> bool:
-        """
-        单次渲染更新，合并缓冲区点云并处理窗口事件。
+    def update(self, xyz: np.ndarray):
+        points = xyz[:, :2]
+        mask = (points[:, 0] >= self.min_coord) & (points[:, 0] < self.max_coord) & \
+               (points[:, 1] >= self.min_coord) & (points[:, 1] < self.max_coord)
+        points = points[mask]
+        if len(points) == 0:
+            return
+        indices = ((points - self.min_coord) / self.resolution).astype(np.int32)
+        self.grid[indices[:, 1], indices[:, 0]] = 100
+        self.grid[self.grid > 0] = np.maximum(self.grid[self.grid > 0] - 5, 0)
+        self.im.set_data(self.grid)
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
-        Returns:
-            bool: 窗口存活返回 True，否则 False。
-        """
-        if not self._is_alive:
-            return False
-
-        if self._frames:
-            xyz_list, color_list = zip(*self._frames)
-            merged_xyz = np.concatenate(xyz_list, axis=0)
-            merged_colors = np.concatenate(color_list, axis=0)
-            self._pcd.points = o3d.utility.Vector3dVector(merged_xyz)
-            self._pcd.colors = o3d.utility.Vector3dVector(merged_colors)
-            self._vis.update_geometry(self._pcd)
-            if self._first:
-                self._vis.reset_view_point(True)
-                self._first = False
-
-        alive = self._vis.poll_events()
-        self._vis.update_renderer()
-
-        if not alive:
-            self._is_alive = False
-
-        return alive
+    def save(self, filename: str):
+        plt.imsave(filename, self.grid, cmap='gray', vmin=0, vmax=100)
+        print(f"[OccupancyGrid] 已保存网格到 {filename}")
 
     def close(self):
-        """销毁可视化窗口。"""
-        self._vis.destroy_window()
+        plt.close(self.fig)
 
-class LiveViewer(_Livox):
-    """
-    Livox SDK 封装，集成 KISS-ICP 里程计和 Open3D 可视化。
-    """
-    def __init__(self, config_path: str = "mid360_config.json", host_ip: str = "192.168.123.164"):
-        """
-        初始化 Livox 连接、KISS-ICP 和 Open3D 可视化器。
+# ---------------------------------------------------------------------------
+# 数据保存工具函数
+# ---------------------------------------------------------------------------
 
-        Args:
-            config_path (str): JSON 配置文件路径。
-            host_ip (str): 主机 IP 地址。
-        """
-        # 检查配置文件
-        cfg = Path(config_path)
-        if not cfg.exists():
-            host_ip = os.environ.get("HOST_IP", host_ip)
-            data = {
-                "MID360": {
-                    "lidar_net_info": {
-                        "lidar_ip": "192.168.123.120",
-                        "cmd_data_port": 56100,
-                        "push_msg_port": 56200,
-                        "point_data_port": 56300,
-                        "imu_data_port": 56400,
-                        "log_data_port": 56500,
-                    },
-                    "host_net_info": [
-                        {
-                            "host_ip": host_ip,
-                            "multicast_ip": "224.1.1.5",
-                            "cmd_data_port": 56101,
-                            "push_msg_port": 56201,
-                            "point_data_port": 56301,
-                            "imu_data_port": 56401,
-                            "log_data_port": 56501,
-                        }
-                    ]
-                }
-            }
-            cfg.write_text(json.dumps(data, indent=2))
-            print(f"[LiveViewer] 默认配置文件已生成: {config_path}")
+def _generate_timestamp() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # 初始化 IMU 数据保存
-        self._imu_csv = DATA_DIR / "imu_data.csv"
-        self._imu_count = 0
-        self._imu_buffer: list[tuple[np.ndarray, int]] = []
-        with open(self._imu_csv, 'w', newline='', encoding='utf-8') as f:
+def _save_point_cloud(cloud: np.ndarray, file_path: Path) -> bool:
+    if cloud is None or cloud.size == 0:
+        print(f"[WARNING] 空点云，跳过保存到 {file_path}")
+        return False
+    try:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(cloud)
+        ext = file_path.suffix.lower()
+        if ext in [".ply", ".pcd"]:
+            success = o3d.io.write_point_cloud(str(file_path), pcd)
+        elif ext == ".xyz":
+            np.savetxt(file_path, cloud, fmt="%.6f", delimiter=" ", header="x y z", comments="# ")
+            success = True
+        else:
+            print(f"[ERROR] 不支持的文件格式: {ext}")
+            return False
+        if success:
+            print(f"[INFO] 点云已保存: {file_path} ({cloud.shape[0]} 点)")
+            return True
+        else:
+            print(f"[ERROR] 保存点云失败: {file_path}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] 保存点云时出错: {e}")
+        return False
+
+def _save_trajectory(poses: List[np.ndarray], file_path: Path) -> bool:
+    if not poses:
+        print(f"[WARNING] 空轨迹，跳过保存到 {file_path}")
+        return False
+    try:
+        trajectory_data = []
+        for i, pose in enumerate(poses):
+            if pose is None:
+                continue
+            translation = pose[:3, 3]
+            rotation_matrix = pose[:3, :3]
+            try:
+                from scipy.spatial.transform import Rotation
+                rot = Rotation.from_matrix(rotation_matrix)
+                quaternion = rot.as_quat()
+                quaternion = np.roll(quaternion, 1)
+            except ImportError:
+                quaternion = [1.0, 0.0, 0.0, 0.0]
+            trajectory_data.append([float(i)] + translation.tolist() + quaternion.tolist())
+        np.savetxt(file_path, trajectory_data, fmt="%.6f", delimiter=" ",
+                   header="timestamp x y z qw qx qy qz", comments="# ")
+        print(f"[INFO] 轨迹已保存: {file_path} ({len(trajectory_data)} 位姿)")
+        return True
+    except Exception as e:
+        print(f"[ERROR] 保存轨迹时出错: {e}")
+        return False
+
+def _save_imu_data(imu_buffer: List[tuple[np.ndarray, int]], file_path: Path) -> bool:
+    if not imu_buffer:
+        print(f"[WARNING] 空 IMU 数据，跳过保存到 {file_path}")
+        return False
+    try:
+        with open(file_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['timestamp', 'gx', 'gy', 'gz', 'ax', 'ay', 'az'])
+            for data, ts in imu_buffer:
+                for row in data:
+                    writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+        print(f"[INFO] IMU 数据已保存: {file_path} ({sum(len(data) for data, _ in imu_buffer)} 样本)")
+        return True
+    except Exception as e:
+        print(f"[ERROR] 保存 IMU 数据时出错: {e}")
+        return False
 
-        # 初始化 Livox2
-        super().__init__(
-            config_path,
-            host_ip=host_ip,
-            frame_time=0.1,  # 适配 G-1
-            frame_packets=60  # 降低 CPU 负载
-        )
+def _save_slam_metadata(metadata: Dict[str, Any], file_path: Path) -> bool:
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        print(f"[INFO] 元数据已保存: {file_path}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] 保存元数据时出错: {e}")
+        return False
 
-        # 初始化 KISS-ICP 和轨迹存储
-        self.odometry = Odometry()
-        self.current_pose = np.eye(4)  # 初始位姿
-        self.poses = []  # 存储轨迹 (时间戳, 位姿)
-        self.global_pcd = o3d.geometry.PointCloud()  # 全局点云地图
-        self._view = _Viewer()
+# ---------------------------------------------------------------------------
+# 3D 可视化器类
+# ---------------------------------------------------------------------------
+
+class _Viewer:
+    def __init__(self):
+        self._vis = o3d.visualization.Visualizer()
+        self._vis.create_window(window_name="Livox SLAM", width=1280, height=720)
+        self._pcd = o3d.geometry.PointCloud()
+        self._vis.add_geometry(self._pcd)
+        self._cam_frame: Optional[o3d.geometry.TriangleMesh] = None
+        self._latest_pts: Optional[np.ndarray] = None
+        self._latest_pose: Optional[np.ndarray] = None
+        self._first = True
+
+    def push(self, xyz: np.ndarray, pose: np.ndarray):
+        self._latest_pts = xyz
+        self._latest_pose = pose
+
+    def tick(self) -> bool:
+        updated = False
+        if self._latest_pts is not None:
+            self._pcd.points = o3d.utility.Vector3dVector(self._latest_pts)
+            self._vis.update_geometry(self._pcd)
+            self._latest_pts = None
+            updated = True
+        if self._latest_pose is not None:
+            self._update_pose_vis(self._latest_pose)
+            self._latest_pose = None
+            updated = True
+        if self._first and updated:
+            self._vis.reset_view_point(True)
+            self._first = False
+        alive = self._vis.poll_events()
+        self._vis.update_renderer()
+        return alive
+
+    def _update_pose_vis(self, pose: np.ndarray):
+        if self._cam_frame is not None:
+            self._vis.remove_geometry(self._cam_frame, reset_bounding_box=False)
+        size = 0.5
+        if len(self._pcd.points) > 0:
+            bbox = self._pcd.get_axis_aligned_bounding_box()
+            extent = bbox.get_max_bound() - bbox.get_min_bound()
+            size = float(np.linalg.norm(extent)) * 0.03
+            size = max(0.2, min(size, 2.0))
+        self._cam_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=size)
+        self._cam_frame.transform(pose)
+        self._vis.add_geometry(self._cam_frame, reset_bounding_box=False)
+        self._vis.update_geometry(self._cam_frame)
+
+    def close(self):
+        self._vis.destroy_window()
+
+# ---------------------------------------------------------------------------
+# 点云质量检查和预处理
+# ---------------------------------------------------------------------------
+
+def _check_point_cloud_quality(xyz: np.ndarray) -> tuple[bool, str]:
+    if xyz.size == 0:
+        return False, "空点云"
+    if xyz.shape[0] < 500:
+        return False, f"点数太少 ({xyz.shape[0]} < 500)"
+    if not np.isfinite(xyz).all():
+        invalid_count = (~np.isfinite(xyz)).sum()
+        return False, f"包含 {invalid_count} 个无效点"
+    ranges = np.ptp(xyz, axis=0)
+    if np.any(ranges < 0.1):
+        return False, f"点云分布范围过小: {ranges}"
+    volume = np.prod(ranges)
+    density = xyz.shape[0] / volume if volume > 0 else 0
+    if density < 1.0:
+        return False, f"点云密度过低: {density:.2f} 点/m³"
+    return True, "质量合格"
+
+def _preprocess_point_cloud(xyz: np.ndarray) -> np.ndarray:
+    if xyz.size == 0:
+        return xyz
+    valid_mask = np.isfinite(xyz).all(axis=1)
+    xyz = xyz[valid_mask]
+    if xyz.size == 0:
+        return xyz
+    distances = np.linalg.norm(xyz, axis=1)
+    distance_mask = (distances >= _P["min_range"]) & (distances <= _P["max_range"])
+    xyz = xyz[distance_mask]
+    if xyz.size == 0:
+        return xyz
+    try:
+        r_xy = float(os.environ.get("LIDAR_SELF_FILTER_RADIUS", "0.20"))
+        dz = float(os.environ.get("LIDAR_SELF_FILTER_Z", "0.15"))
+    except ValueError:
+        r_xy, dz = 0.20, 0.15
+    dist_xy = np.linalg.norm(xyz[:, :2], axis=1)
+    close_mask = dist_xy < r_xy
+    near_plane_mask = np.abs(xyz[:, 2]) < dz
+    self_reflection_mask = close_mask & near_plane_mask
+    xyz = xyz[~self_reflection_mask]
+    if xyz.size == 0:
+        return xyz
+    if xyz.shape[0] > 1000:
+        try:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(xyz)
+            pcd, _ = pcd.remove_radius_outlier(nb_points=3, radius=0.5)
+            if len(pcd.points) > 100:
+                xyz = np.asarray(pcd.points)
+        except Exception as e:
+            print(f"[WARNING] 统计过滤失败: {e}")
+    return xyz
+
+# ---------------------------------------------------------------------------
+# 改进的主要 SLAM 演示类
+# ---------------------------------------------------------------------------
+
+class LiveSLAMDemo(_Livox):
+    def __init__(self):
+        _sdk_kwargs = {}
+        if _Livox.__name__ == "Livox2":
+            _sdk_kwargs.update(frame_time=_P["frame_time"], frame_packets=_P["frame_packets"])
+        try:
+            super().__init__("mid360_config.json", host_ip="192.168.123.164", **_sdk_kwargs)
+        except TypeError:
+            super().__init__()
+        self._slam = self._create_optimized_slam()
+        self._viewer = _Viewer()
+        self._vis_max_points = _P["downsample_limit"]
+        self._last_frame_time = time.time()
+        self._frame_count = 0
+        self._processed_frames = 0
+        self._skip_frames = 0
+        self._is_initialized = False
+        self._initialization_frames = 0
+        self._min_init_frames = 10
+        self._init_poses = []
+        self._last_successful_pose = np.eye(4)
+        self._consecutive_failures = 0
+        self._max_consecutive_failures = 5
+        self._start_time = datetime.now()
+        self._trajectory: List[np.ndarray] = []
+        self._total_frames_processed = 0
+        self._imu_buffer: List[tuple[np.ndarray, int]] = []
+        self._imu_count = 0
+        self.occupancy_grid = OccupancyGrid()
+        print(f"[INFO] SLAM 系统初始化完成 (预设: {PRESET})")
+        print(f"[INFO] KISS-ICP 配置: voxel_size={_P['voxel_size']}, max_range={_P['max_range']}")
+
+    def _create_optimized_slam(self) -> KissICP:
+        try:
+            from kiss_icp.config import load_config
+            cfg = load_config(config_file=None, max_range=_P["max_range"])
+            self._apply_optimized_config(cfg)
+            return KissICP(cfg)
+        except Exception as e:
+            print(f"[ERROR] 创建 SLAM 配置失败: {e}")
+            raise SystemExit("无法创建 KISS-ICP 实例") from e
+
+    def _apply_optimized_config(self, cfg):
+        try:
+            if hasattr(cfg, 'data'):
+                cfg.data.max_range = _P["max_range"]
+                cfg.data.min_range = _P["min_range"]
+                cfg.data.deskew = _P["deskew"]
+            if hasattr(cfg, 'mapping'):
+                cfg.mapping.voxel_size = _P["voxel_size"]
+                cfg.mapping.max_points_per_voxel = _P["max_points_per_voxel"]
+            if hasattr(cfg, 'registration'):
+                cfg.registration.max_num_iterations = _P["max_num_iterations"]
+                cfg.registration.convergence_criterion = _P["convergence_criterion"]
+                cfg.registration.max_num_threads = _P["max_num_threads"]
+            if hasattr(cfg, 'adaptive_threshold'):
+                cfg.adaptive_threshold.initial_threshold = _P["initial_threshold"]
+                cfg.adaptive_threshold.min_motion_th = _P["min_motion_th"]
+            print("[INFO] KISS-ICP 配置已优化")
+        except Exception as e:
+            print(f"[WARNING] 应用配置时出错: {e}")
 
     def handle_points(self, xyz: np.ndarray, reflectivity: np.ndarray, tag: np.ndarray, timestamp: int):
-        """
-        处理点云数据，调用 KISS-ICP 配准，更新全局点云。
-
-        Args:
-            xyz (np.ndarray): 原始点云数据 (N, 3)。
-            reflectivity (np.ndarray): 反射强度 (N,)，范围 0-255。
-            tag (np.ndarray): 标签 (N,)。
-            timestamp (int): 时间戳 (ns)。
-        """
-        # 坐标校正
+        current_time = time.time()
+        self._frame_count += 1
+        if current_time - self._last_frame_time < 0.1:
+            return
+        self._last_frame_time = current_time
         if MOUNT == "upside_down":
             xyz = xyz * np.array([1.0, -1.0, -1.0], dtype=xyz.dtype)
+        if _R_MOUNT is not None:
+            xyz_homo = np.column_stack([xyz, np.ones(xyz.shape[0])])
+            xyz_corrected = (xyz_homo @ _R_MOUNT.T)[:, :3]
+            xyz = xyz_corrected.astype(xyz.dtype, copy=False)
+        xyz = _preprocess_point_cloud(xyz)
+        is_valid, quality_msg = _check_point_cloud_quality(xyz)
+        if not is_valid:
+            self._skip_frames += 1
+            if self._skip_frames % 10 == 0:
+                print(f"[WARNING] 跳过低质量帧: {quality_msg} (已跳过 {self._skip_frames} 帧)")
+            return
+        self._skip_frames = 0
+        try:
+            num_points = xyz.shape[0]
+            timestamps = np.linspace(0.0, 0.1, num_points, dtype=np.float64)
+            prev_pose = self._slam.last_pose.copy() if hasattr(self._slam, 'last_pose') else np.eye(4)
+            frame_result = self._slam.register_frame(xyz, timestamps)
+            current_pose = self._slam.last_pose.copy() if hasattr(self._slam, 'last_pose') else np.eye(4)
+            if self._validate_registration(prev_pose, current_pose):
+                self._last_successful_pose = current_pose.copy()
+                self._consecutive_failures = 0
+                self._processed_frames += 1
+                self._trajectory.append(current_pose.copy())
+            else:
+                self._consecutive_failures += 1
+                print(f"[WARNING] 配准质量不佳 (连续失败: {self._consecutive_failures})")
+                if self._consecutive_failures >= self._max_consecutive_failures:
+                    print("[WARNING] 连续配准失败，尝试系统重置")
+                    self._reset_slam_system()
+                    return
+        except Exception as e:
+            print(f"[ERROR] SLAM 处理失败: {e}")
+            self._consecutive_failures += 1
+            return
+        if not self._is_initialized:
+            self._initialization_frames += 1
+            self._init_poses.append(current_pose.copy())
+            if self._initialization_frames >= self._min_init_frames:
+                if self._validate_initialization():
+                    self._is_initialized = True
+                    print(f"[INFO] SLAM 系统已成功初始化 ({self._initialization_frames} 帧)")
+                else:
+                    print("[WARNING] 初始化质量不佳，继续收集更多帧")
+                    self._min_init_frames += 5
+        try:
+            if hasattr(self._slam, 'get_map'):
+                cloud = self._slam.get_map()
+            elif hasattr(self._slam, 'local_map'):
+                cloud = self._slam.local_map.point_cloud()
+            else:
+                print("[ERROR] 无法获取地图")
+                return
+            if cloud is None or cloud.size == 0:
+                print("[WARNING] 空地图")
+                return
+            if cloud.shape[0] > self._vis_max_points:
+                step = max(1, int(cloud.shape[0] / self._vis_max_points))
+                cloud = cloud[::step]
+            self._viewer.push(cloud, current_pose)
+            self.occupancy_grid.update(cloud)  # 更新占用网格
+        except Exception as e:
+            print(f"[WARNING] 可视化更新失败: {e}")
+        if self._processed_frames % 50 == 0:
+            print(f"[INFO] 已处理 {self._processed_frames} 帧，当前位置: "
+                  f"({current_pose[0,3]:.2f}, {current_pose[1,3]:.2f}, {current_pose[2,3]:.2f})")
 
-        # 下采样
-        if xyz.shape[0] > 100_000:
-            step = xyz.shape[0] // 100_000
-            xyz = xyz[::step]
-            reflectivity = reflectivity[::step]
+    def _validate_registration(self, prev_pose: np.ndarray, current_pose: np.ndarray) -> bool:
+        try:
+            delta_pose = np.linalg.inv(prev_pose) @ current_pose
+            translation_change = np.linalg.norm(delta_pose[:3, 3])
+            rotation_matrix = delta_pose[:3, :3]
+            rotation_angle = np.arccos(np.clip((np.trace(rotation_matrix) - 1) / 2, -1.0, 1.0))
+            max_translation = 5.0
+            max_rotation = np.radians(30)
+            if translation_change > max_translation:
+                print(f"[WARNING] 平移变化过大: {translation_change:.3f}m")
+                return False
+            if rotation_angle > max_rotation:
+                print(f"[WARNING] 旋转变化过大: {np.degrees(rotation_angle):.1f}°")
+                return False
+            return True
+        except Exception as e:
+            print(f"[WARNING] 配准验证失败: {e}")
+            return False
 
-        # KISS-ICP 配准
-        self.current_pose = self.odometry.register(xyz, self.current_pose)
-        self.poses.append((timestamp / 1e9, self.current_pose.copy()))
+    def _validate_initialization(self) -> bool:
+        if len(self._init_poses) < self._min_init_frames:
+            return False
+        try:
+            total_distance = 0.0
+            for i in range(1, len(self._init_poses)):
+                delta = self._init_poses[i][:3, 3] - self._init_poses[i-1][:3, 3]
+                total_distance += np.linalg.norm(delta)
+            if total_distance < 0.5:
+                print(f"[WARNING] 初始化期间运动不足: {total_distance:.3f}m")
+                return False
+            max_single_step = 0.0
+            for i in range(1, len(self._init_poses)):
+                delta = self._init_poses[i][:3, 3] - self._init_poses[i-1][:3, 3]
+                step_distance = np.linalg.norm(delta)
+                max_single_step = max(max_single_step, step_distance)
+            if max_single_step > 2.0:
+                print(f"[WARNING] 初始化期间存在位姿突变: {max_single_step:.3f}m")
+                return False
+            return True
+        except Exception as e:
+            print(f"[WARNING] 初始化验证失败: {e}")
+            return False
 
-        # 变换点云到世界坐标系
-        transformed_xyz = (self.current_pose[:3, :3] @ xyz.T + self.current_pose[:3, 3]).T
-
-        # 生成颜色
-        norm_reflectivity = reflectivity / 255.0
-        colors = np.zeros((xyz.shape[0], 3), dtype=np.float32)
-        colors[:, 0] = norm_reflectivity
-        colors[:, 1] = norm_reflectivity
-        colors[:, 2] = 0.5 + 0.5 * norm_reflectivity
-
-        # 更新全局点云
-        frame_pcd = o3d.geometry.PointCloud()
-        frame_pcd.points = o3d.utility.Vector3dVector(transformed_xyz)
-        frame_pcd.colors = o3d.utility.Vector3dVector(colors)
-        self.global_pcd += frame_pcd
-
-        # 推送到可视化器
-        self._view.push(transformed_xyz, colors)
-
-        print(f"[LiveViewer] 当前位姿：\n{self.current_pose}")
+    def _reset_slam_system(self):
+        try:
+            print("[INFO] 正在重置 SLAM 系统...")
+            self._slam = self._create_optimized_slam()
+            self._is_initialized = False
+            self._initialization_frames = 0
+            self._min_init_frames = 10
+            self._init_poses.clear()
+            self._consecutive_failures = 0
+            self._last_successful_pose = np.eye(4)
+            print("[INFO] SLAM 系统重置完成")
+        except Exception as e:
+            print(f"[ERROR] SLAM 系统重置失败: {e}")
 
     def handle_imu(self, imu_data: np.ndarray, timestamp: int):
-        """
-        处理 IMU 数据，保存到 CSV。
-
-        Args:
-            imu_data (np.ndarray): IMU 数据 (N, 6)，[gx, gy, gz, ax, ay, az]。
-            timestamp (int): 时间戳 (ns)。
-        """
         self._imu_buffer.append((imu_data, timestamp))
         self._imu_count += len(imu_data)
         if len(self._imu_buffer) >= 100:
-            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                for data, ts in self._imu_buffer:
-                    for row in data:
-                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+            print(f"[INFO] 缓冲 {self._imu_count} 个 IMU 样本")
             self._imu_buffer = []
+
+    def save_slam_data(self) -> bool:
+        print("[INFO] 正在保存 SLAM 数据...")
+        timestamp = _generate_timestamp()
+        session_name = f"slam_session_{timestamp}"
+        session_dir = DATA_DIR / session_name
+        session_dir.mkdir(exist_ok=True)
+        success_count = 0
+        total_saves = 0
+        try:
+            if hasattr(self._slam, 'get_map'):
+                final_map = self._slam.get_map()
+            elif hasattr(self._slam, 'local_map'):
+                final_map = self._slam.local_map.point_cloud()
+            else:
+                final_map = None
+            if final_map is not None and final_map.size > 0:
+                for fmt in ["ply", "pcd"]:
+                    total_saves += 1
+                    map_file = session_dir / f"final_map.{fmt}"
+                    if _save_point_cloud(final_map, map_file):
+                        success_count += 1
+        except Exception as e:
+            print(f"[ERROR] 保存地图时出错: {e}")
+        if self._trajectory:
+            total_saves += 1
+            trajectory_file = session_dir / "trajectory.txt"
+            if _save_trajectory(self._trajectory, trajectory_file):
+                success_count += 1
+        if self._imu_buffer:
+            total_saves += 1
+            imu_file = session_dir / "imu_data.csv"
+            if _save_imu_data(self._imu_buffer, imu_file):
+                success_count += 1
+        try:
+            end_time = datetime.now()
+            duration = (end_time - self._start_time).total_seconds()
+            metadata = {
+                "session_info": {
+                    "start_time": self._start_time.isoformat(),
+                    "end_time": end_time.isoformat(),
+                    "duration_seconds": duration,
+                    "preset": PRESET,
+                    "mount": MOUNT,
+                    "total_frames_processed": self._processed_frames,
+                    "initialization_successful": self._is_initialized,
+                    "total_imu_samples": self._imu_count
+                },
+                "slam_config": {
+                    "voxel_size": _P["voxel_size"],
+                    "max_range": _P["max_range"],
+                    "min_range": _P["min_range"],
+                    "max_points_per_voxel": _P["max_points_per_voxel"],
+                    "max_num_iterations": _P["max_num_iterations"],
+                    "convergence_criterion": _P["convergence_criterion"],
+                    "initial_threshold": _P["initial_threshold"],
+                    "min_motion_th": _P["min_motion_th"],
+                    "deskew": _P["deskew"]
+                },
+                "correction_settings": {
+                    "mount_correction": MOUNT,
+                    "tilt_axis": _TILT_AXIS,
+                    "tilt_degrees": _TILT_DEG,
+                    "self_filter_radius": float(os.environ.get("LIDAR_SELF_FILTER_RADIUS", 0.20)),
+                    "self_filter_z": float(os.environ.get("LIDAR_SELF_FILTER_Z", 0.15))
+                },
+                "statistics": {
+                    "trajectory_poses": len(self._trajectory),
+                    "final_map_points": len(final_map) if 'final_map' in locals() and final_map is not None else 0,
+                    "imu_samples": self._imu_count,
+                    "successful_frames": self._processed_frames,
+                    "total_frames_received": self._frame_count
+                }
+            }
+            total_saves += 1
+            metadata_file = session_dir / "session_metadata.json"
+            if _save_slam_metadata(metadata, metadata_file):
+                success_count += 1
+        except Exception as e:
+            print(f"[ERROR] 保存元数据时出错: {e}")
+        self.occupancy_grid.save(str(session_dir / "occupancy_grid.png"))
+        success_count += 1
+        total_saves += 1
+        print(f"[INFO] SLAM 数据保存完成: {success_count}/{total_saves} 文件成功保存")
+        print(f"[INFO] 数据保存位置: {session_dir}")
+        if success_count > 0:
+            print("[INFO] 保存的文件:")
+            for file_path in sorted(session_dir.glob("*")):
+                file_size = file_path.stat().st_size / 1024 / 1024
+                print(f"  - {file_path.name} ({file_size:.2f} MB)")
+        return success_count > 0
 
     def shutdown(self):
-        """
-        关闭 SDK，保存轨迹和点云地图，销毁可视化窗口。
-        """
-        # 保存剩余 IMU 数据
-        if self._imu_buffer:
-            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                for data, ts in self._imu_buffer:
-                    for row in data:
-                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
-            self._imu_buffer = []
+        print("[INFO] 正在关闭 SLAM 系统...")
+        print(f"[INFO] 会话统计: 收到 {self._frame_count} 帧，成功处理 {self._processed_frames} 帧")
+        if self._is_initialized:
+            print("[INFO] SLAM 系统已成功初始化并运行")
+        else:
+            print("[WARNING] SLAM 系统未能成功初始化")
+        try:
+            self.save_slam_data()
+        except Exception as e:
+            print(f"[ERROR] 保存数据时出错: {e}")
+        try:
+            super().shutdown()
+        except Exception as e:
+            print(f"[WARNING] 关闭 Livox 时出错: {e}")
+        try:
+            self._viewer.close()
+            self.occupancy_grid.close()
+        except Exception as e:
+            print(f"[WARNING] 关闭可视化器时出错: {e}")
+        print("[INFO] SLAM 系统已安全关闭")
 
-        # 保存轨迹（时间戳 + 平移）
-        if self.poses:
-            trajectory = np.array([[t] + pose[:3, 3].tolist() for t, pose in self.poses])
-            np.savetxt(DATA_DIR / "trajectory.csv", trajectory, delimiter=",", header="timestamp,x,y,z", comments="")
-            print(f"[LiveViewer] 已保存轨迹到 {DATA_DIR / 'trajectory.csv'}")
-
-        # 保存全局点云
-        if np.asarray(self.global_pcd.points).size > 0:
-            o3d.io.write_point_cloud(str(DATA_DIR / "map.pcd"), self.global_pcd)
-            print(f"[LiveViewer] 已保存全局点云到 {DATA_DIR / 'map.pcd'}")
-
-        super().shutdown()
-        self._view.close()
+# ---------------------------------------------------------------------------
+# 主函数
+# ---------------------------------------------------------------------------
 
 def main():
-    """
-    主入口，初始化 LiveViewer，捕获 Ctrl-C，运行主循环。
-    """
-    print(f"[LiveViewer] 启动 Livox 点云查看器 (挂载: {MOUNT})")
-    print(f"[LiveViewer] IMU 数据将保存到: {DATA_DIR.absolute() / 'imu_data.csv'}")
-    print(f"[LiveViewer] 轨迹将保存到: {DATA_DIR.absolute() / 'trajectory.csv'}")
-    print(f"[LiveViewer] 点云地图将保存到: {DATA_DIR.absolute() / 'map.pcd'}")
-    lidar = LiveViewer()
+    print("="*60)
+    print(f"启动 Livox SLAM (改进版)")
+    print(f"预设: {PRESET.upper()}")
+    print(f"挂载方向: {MOUNT}")
+    print(f"数据保存目录: {DATA_DIR.absolute()}")
+    print("="*60)
+    print("[INFO] 关键配置参数:")
+    print(f"  - 体素大小: {_P['voxel_size']} m")
+    print(f"  - 最大距离: {_P['max_range']} m")
+    print(f"  - ICP 迭代次数: {_P['max_num_iterations']}")
+    print(f"  - 收敛标准: {_P['convergence_criterion']}")
+    print(f"  - 初始阈值: {_P['initial_threshold']}")
+    demo = LiveSLAMDemo()
     stop = False
-
-    def _sigint_handler(*_):
+    def _sigint(*_):
         nonlocal stop
-        print("\n[LiveViewer] 收到 Ctrl-C，正在关闭...")
+        print("\n[INFO] 收到中断信号，正在优雅关闭...")
         stop = True
-
-    signal.signal(signal.SIGINT, _sigint_handler)
-
+    signal.signal(signal.SIGINT, _sigint)
     try:
-        while not stop and lidar._view.tick():
+        print("\n[INFO] SLAM 已启动，等待激光雷达数据...")
+        print("[INFO] 系统将自动进行初始化，请缓慢移动传感器")
+        print("[INFO] 按 Ctrl-C 停止并保存数据")
+        while not stop and demo._viewer.tick():
             time.sleep(0.01)
+    except KeyboardInterrupt:
+        print("\n[INFO] 收到键盘中断")
     finally:
-        lidar.shutdown()
+        demo.shutdown()
 
 if __name__ == "__main__":
     main()

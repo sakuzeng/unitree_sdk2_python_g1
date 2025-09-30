@@ -32,6 +32,7 @@ import csv
 import numpy as np
 import open3d as o3d
 import json
+import sys
 
 # ---------------------------------------------------------------------------
 # 挂载方向说明 (Mount Orientation)
@@ -239,25 +240,54 @@ class LiveViewer(_Livox):
         colors[:, 2] = 0.5 + 0.5 * norm_reflectivity  # B: 0.5 -> 1
 
         self._view.push(xyz, colors)
-
+        
     def handle_imu(self, imu_data: np.ndarray, timestamp: int):
         """
-        SDK 的 IMU 数据回调函数，在后台线程中运行。
+        处理 IMU 数据，缓冲并保存到 CSV，修复加速度单位为 m/s² 并处理坐标系翻转。
 
         Args:
-            imu_data (np.ndarray): IMU 数据 (N, 6)，包含 [gx, gy, gz, ax, ay, az]。
-            timestamp (int): 时间戳 (ns)。
+            imu_data (np.ndarray): IMU 数据，形状 (N, 6)，包含 [gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z]。
+                                原始加速度单位为 g，角速度单位为 rad/s。
+            timestamp (int): 数据包时间戳，单位：ns。
         """
+        # 将加速度从 g 转换为 m/s²
+        imu_data[:, 3:6] *= 9.81  # acc_x, acc_y, acc_z 乘以 9.81
+
+        # 如果雷达倒挂，翻转 gy, gz, ay, az
+        if getattr(self, 'mount', None) == "upside_down":
+            imu_data[:, [1, 2, 4, 5]] *= -1  # 翻转 gyro_y, gyro_z, acc_y, acc_z
+
         self._imu_buffer.append((imu_data, timestamp))
-        self._imu_count += len(imu_data)
         if len(self._imu_buffer) >= 100:  # 每 100 个样本写入
-            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                for data, ts in self._imu_buffer:
-                    for row in data:
-                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
-            self._imu_buffer = []
+            try:
+                with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    for data, ts in self._imu_buffer:
+                        for row in data:
+                            writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+                self._imu_count += sum(len(data) for data, _ in self._imu_buffer)
+                print(f"[LidarDataSaver] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+                self._imu_buffer = []
+            except IOError as e:
+                print(f"[LidarDataSaver] CSV 写入失败: {e}", file=sys.stderr)
+    # def handle_imu(self, imu_data: np.ndarray, timestamp: int):
+    #     """
+    #     SDK 的 IMU 数据回调函数，在后台线程中运行。
+
+    #     Args:
+    #         imu_data (np.ndarray): IMU 数据 (N, 6)，包含 [gx, gy, gz, ax, ay, az]。
+    #         timestamp (int): 时间戳 (ns)。
+    #     """
+    #     self._imu_buffer.append((imu_data, timestamp))
+    #     self._imu_count += len(imu_data)
+    #     if len(self._imu_buffer) >= 100:  # 每 100 个样本写入
+    #         with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+    #             writer = csv.writer(f)
+    #             for data, ts in self._imu_buffer:
+    #                 for row in data:
+    #                     writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+    #         print(f"[LiveViewer] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+    #         self._imu_buffer = []
 
     def shutdown(self):
         """关闭 SDK 连接并销毁可视化窗口，保存剩余 IMU 数据。"""

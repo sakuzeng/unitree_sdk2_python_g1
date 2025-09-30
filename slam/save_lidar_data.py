@@ -22,6 +22,7 @@ import numpy as np
 import csv
 import os
 import json
+import sys
 
 # 挂载方向
 MOUNT = os.environ.get("LIVOX_MOUNT", "upside_down").lower()
@@ -136,25 +137,53 @@ class LidarDataSaver(_Livox):
             print(f"[错误] 保存 .txt 点云帧 {self._frame_count + 1} 失败: {e}")
 
         self._frame_count += 1
-
     def handle_imu(self, imu_data: np.ndarray, timestamp: int):
         """
-        处理 IMU 数据，缓冲并保存到 CSV。
+        处理 IMU 数据，缓冲并保存到 CSV，修复加速度单位为 m/s² 并处理坐标系翻转。
 
         Args:
             imu_data (np.ndarray): IMU 数据，形状 (N, 6)，包含 [gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z]。
+                                原始加速度单位为 g，角速度单位为 rad/s。
             timestamp (int): 数据包时间戳，单位：ns。
         """
+        # 将加速度从 g 转换为 m/s²
+        imu_data[:, 3:6] *= 9.81  # acc_x, acc_y, acc_z 乘以 9.81
+
+        # 如果雷达倒挂，翻转 gy, gz, ay, az
+        if getattr(self, 'mount', None) == "upside_down":
+            imu_data[:, [1, 2, 4, 5]] *= -1  # 翻转 gyro_y, gyro_z, acc_y, acc_z
+
         self._imu_buffer.append((imu_data, timestamp))
         if len(self._imu_buffer) >= 100:  # 每 100 个样本写入
-            with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                for data, ts in self._imu_buffer:
-                    for row in data:
-                        writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
-            self._imu_count += sum(len(data) for data, _ in self._imu_buffer)
-            print(f"[LidarDataSaver] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
-            self._imu_buffer = []
+            try:
+                with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    for data, ts in self._imu_buffer:
+                        for row in data:
+                            writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+                self._imu_count += sum(len(data) for data, _ in self._imu_buffer)
+                print(f"[LidarDataSaver] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+                self._imu_buffer = []
+            except IOError as e:
+                print(f"[LidarDataSaver] CSV 写入失败: {e}", file=sys.stderr)
+    # def handle_imu(self, imu_data: np.ndarray, timestamp: int):
+    #     """
+    #     处理 IMU 数据，缓冲并保存到 CSV。
+
+    #     Args:
+    #         imu_data (np.ndarray): IMU 数据，形状 (N, 6)，包含 [gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z]。
+    #         timestamp (int): 数据包时间戳，单位：ns。
+    #     """
+    #     self._imu_buffer.append((imu_data, timestamp))
+    #     if len(self._imu_buffer) >= 100:  # 每 100 个样本写入
+    #         with open(self._imu_csv, 'a', newline='', encoding='utf-8') as f:
+    #             writer = csv.writer(f)
+    #             for data, ts in self._imu_buffer:
+    #                 for row in data:
+    #                     writer.writerow([ts / 1e9, row[0], row[1], row[2], row[3], row[4], row[5]])
+    #         self._imu_count += sum(len(data) for data, _ in self._imu_buffer)
+    #         print(f"[LidarDataSaver] 已保存 {self._imu_count} 个 IMU 样本到 {self._imu_csv}")
+    #         self._imu_buffer = []
 
     def shutdown(self):
         """

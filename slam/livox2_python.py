@@ -247,16 +247,17 @@ class Livox2:
         """
         配置本机加入组播组以接收点云和 IMU 数据。
         """
+        # 为imu和点云数据配置UDP 套接字
         for port_name, port in self._ports.items():
             try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # 创建UDP 套接字，AF_INET 表示 IPv4 地址族，SOCK_DGRAM 表示 UDP 协议
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # 允许端口重用
                 # 绑定到组播端口
-                sock.bind(('', port))
+                sock.bind(('', port)) # 将套接字绑定到指定端口，'' 表示监听所有网络接口
                 # 加入组播组
-                group = socket.inet_aton(self._multicast_ip)
-                mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                group = socket.inet_aton(self._multicast_ip)  # 将组播 IP（默认 224.1.1.5）转换为二进制格式
+                mreq = struct.pack('4sL', group, socket.INADDR_ANY) # 创建组播请求结构体，指定组播地址和本地接口
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq) # 加入组播组
                 # 设置接收超时（可选）
                 sock.settimeout(5.0)
                 self._sockets.append(sock)
@@ -386,7 +387,7 @@ class Livox2:
                 self.handle_points(frame_xyz, frame_ref, frame_tag, timestamp)
             except Exception as exc:
                 print(f"[Livox2] Exception in handle_points: {exc}", file=sys.stderr)
-
+            # 打印帧点数和时间间隔
             print(f"[Livox2] frame {frame_xyz.shape[0]} pts (Δt={elapsed*1000:.1f} ms)")
             buf_xyz, buf_ref, buf_tag = [], [], []
             last_t = now
