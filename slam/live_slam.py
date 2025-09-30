@@ -25,7 +25,9 @@ from typing import Optional, Dict, Any, List
 import os
 import math
 import matplotlib.pyplot as plt
-
+from matplotlib import colors
+from matplotlib.patches import Circle
+import time
 # ---------------------------------------------------------------------------
 # 数据保存配置
 # ---------------------------------------------------------------------------
@@ -185,41 +187,103 @@ _P = _PRESETS[PRESET]
 # ---------------------------------------------------------------------------
 
 class OccupancyGrid:
-    def __init__(self, resolution: float = GRID_RESOLUTION, size: int = GRID_SIZE, min_coord: float = GRID_MIN, max_coord: float = GRID_MAX):
+    def __init__(self, resolution: float = 0.1, size: int = 1000, min_coord: float = -50.0, max_coord: float = 50.0):
         self.resolution = resolution
         self.size = size
         self.min_coord = min_coord
         self.max_coord = max_coord
-        self.grid = np.full((size, size), 50, dtype=np.uint8)
+        # 使用稀疏矩阵优化内存
+        self.grid = np.zeros((size, size), dtype=np.float32)
+        # 初始化绘图
         plt.ion()
-        self.fig, self.ax = plt.subplots(figsize=(8, 8))
-        self.ax.set_title("实时 2D 占用网格")
-        self.ax.set_xlabel("X (m)")
-        self.ax.set_ylabel("Y (m)")
+        self.fig = plt.figure(figsize=(10, 10), facecolor='white')
+        self.ax = self.fig.add_subplot(111)
+        # 设置自定义颜色映射
+        cmap = colors.ListedColormap(['white', 'gray', 'black'])
+        bounds = [0, 10, 50, 100]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+        
+        # 初始化图像
         self.im = self.ax.imshow(
-            self.grid, cmap='gray', vmin=0, vmax=100,
+            self.grid,
+            cmap=cmap,
+            norm=norm,
             extent=[min_coord, max_coord, min_coord, max_coord],
-            origin='lower'
+            origin='lower',
+            interpolation='nearest'
         )
+        
+        # 设置标题和标签
+        self.ax.set_title("实时 2D 占用网格", fontsize=14, pad=15)
+        self.ax.set_xlabel("X (米)", fontsize=12)
+        self.ax.set_ylabel("Y (米)", fontsize=12)
+        
+        # 添加网格线
+        self.ax.grid(True, which='major', linestyle='--', alpha=0.3)
+        self.ax.set_xticks(np.arange(min_coord, max_coord + resolution, 5.0))
+        self.ax.set_yticks(np.arange(min_coord, max_coord + resolution, 5.0))
+        
+        # 添加当前位置标记
+        self.position_marker = Circle((0, 0), 0.5, color='red', alpha=0.6)
+        self.ax.add_patch(self.position_marker)
+        
+        # 添加颜色条
+        cbar = self.fig.colorbar(self.im, ax=self.ax)
+        cbar.set_label('占用概率', fontsize=10)
+        cbar.set_ticks([0, 50, 100])
+        cbar.set_label(['空闲', '未知', '占用'])
+        
+        self.last_update = time.time()
+        self.update_interval = 0.1  # 更新间隔0.1秒
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-    def update(self, xyz: np.ndarray):
+    def update(self, xyz: np.ndarray, current_pose: np.ndarray = None):
+        if time.time() - self.last_update < self.update_interval:
+            return
+            
+        # 更新点云
         points = xyz[:, :2]
         mask = (points[:, 0] >= self.min_coord) & (points[:, 0] < self.max_coord) & \
                (points[:, 1] >= self.min_coord) & (points[:, 1] < self.max_coord)
         points = points[mask]
+        
         if len(points) == 0:
             return
+            
+        # 转换为网格索引
         indices = ((points - self.min_coord) / self.resolution).astype(np.int32)
-        self.grid[indices[:, 1], indices[:, 0]] = 100
-        self.grid[self.grid > 0] = np.maximum(self.grid[self.grid > 0] - 5, 0)
+        valid_indices = (indices[:, 0] >= 0) & (indices[:, 0] < self.size) & \
+                       (indices[:, 1] >= 0) & (indices[:, 1] < self.size)
+        indices = indices[valid_indices]
+        
+        # 更新网格
+        np.add.at(self.grid, (indices[:, 1], indices[:, 0]), 5.0)
+        self.grid = np.clip(self.grid, 0, 100)
+        
+        # 衰减机制
+        decay_mask = self.grid > 0
+        self.grid[decay_mask] = np.maximum(self.grid[decay_mask] - 1.0, 0)
+        
+        # 更新当前位置
+        if current_pose is not None:
+            position = current_pose[:2, 3]
+            if (self.min_coord <= position[0] <= self.max_coord and 
+                self.min_coord <= position[1] <= self.max_coord):
+                self.position_marker.center = (position[0], position[1])
+        
+        # 更新显示
         self.im.set_data(self.grid)
-        self.fig.canvas.draw()
+        self.ax.draw_artist(self.im)
+        self.ax.draw_artist(self.position_marker)
+        self.fig.canvas.blit(self.ax.bbox)
         self.fig.canvas.flush_events()
+        self.last_update = time.time()
 
     def save(self, filename: str):
-        plt.imsave(filename, self.grid, cmap='gray', vmin=0, vmax=100)
+        # 保存前确保显示最新状态
+        self.im.set_data(self.grid)
+        plt.imsave(filename, self.grid, cmap=self.im.cmap, vmin=0, vmax=100)
         print(f"[OccupancyGrid] 已保存网格到 {filename}")
 
     def close(self):
