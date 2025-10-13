@@ -486,6 +486,163 @@ def _preprocess_point_cloud(xyz: np.ndarray) -> np.ndarray:
             print(f"[WARNING] 统计过滤失败: {e}")
     return xyz
 
+def _advanced_preprocess_point_cloud(xyz: np.ndarray, reflectivity: np.ndarray = None) -> np.ndarray:
+    """
+    增强的点云预处理，包含多级滤波和优化
+    
+    Args:
+        xyz: 原始点云坐标
+        reflectivity: 反射强度（可选）
+        
+    Returns:
+        处理后的点云
+    """
+    if xyz.size == 0:
+        return xyz
+    
+    # 1. 基础有效性检查
+    valid_mask = np.isfinite(xyz).all(axis=1)
+    xyz = xyz[valid_mask]
+    if reflectivity is not None:
+        reflectivity = reflectivity[valid_mask]
+    
+    if xyz.size == 0:
+        return xyz
+    
+    # 2. 距离范围滤波（改进版）
+    distances = np.linalg.norm(xyz, axis=1)
+    min_range = _P["min_range"]
+    max_range = _P["max_range"]
+    
+    # 自适应范围调整
+    if len(xyz) > 10000:  # 密集点云适当缩小范围
+        max_range *= 0.9
+    elif len(xyz) < 1000:  # 稀疏点云扩大范围
+        max_range *= 1.1
+        min_range *= 0.8
+    
+    distance_mask = (distances >= min_range) & (distances <= max_range)
+    xyz = xyz[distance_mask]
+    if reflectivity is not None:
+        reflectivity = reflectivity[distance_mask]
+    
+    if xyz.size == 0:
+        return xyz
+    
+    # 3. 改进的自反射过滤
+    r_xy = float(os.environ.get("LIDAR_SELF_FILTER_RADIUS", "0.20"))
+    dz = float(os.environ.get("LIDAR_SELF_FILTER_Z", "0.15"))
+    
+    # 考虑激光器高度的动态自反射过滤
+    dist_xy = np.linalg.norm(xyz[:, :2], axis=1)
+    height_dependent_radius = r_xy * (1 + np.abs(xyz[:, 2]) / 2.0)  # 高度越大，过滤半径越大
+    
+    close_mask = dist_xy < height_dependent_radius
+    near_plane_mask = np.abs(xyz[:, 2]) < dz
+    self_reflection_mask = close_mask & near_plane_mask
+    xyz = xyz[~self_reflection_mask]
+    if reflectivity is not None:
+        reflectivity = reflectivity[~self_reflection_mask]
+    
+    # 4. 基于反射强度的滤波（如果有反射强度数据）
+    if reflectivity is not None and len(reflectivity) == len(xyz):
+        # 过滤反射强度过低的点（可能是噪声）
+        reflectivity_threshold = np.percentile(reflectivity, 10)  # 动态阈值
+        high_quality_mask = reflectivity > reflectivity_threshold
+        xyz = xyz[high_quality_mask]
+    
+    # 5. 多层级统计滤波
+    if xyz.shape[0] > 1000:
+        try:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(xyz)
+            
+            # 第一级：粗糙的离群点移除
+            pcd, _ = pcd.remove_radius_outlier(nb_points=5, radius=0.8)
+            
+            # 第二级：精细的统计滤波
+            if len(pcd.points) > 500:
+                pcd, _ = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+            
+            if len(pcd.points) > 100:
+                xyz = np.asarray(pcd.points)
+        except Exception as e:
+            print(f"[WARNING] 统计滤波失败: {e}")
+    
+    # 6. 地面点检测和处理（改进SLAM性能）
+    if xyz.shape[0] > 500:
+        xyz = _process_ground_points(xyz)
+    
+    # 7. 自适应下采样
+    if xyz.shape[0] > _P["downsample_limit"]:
+        # 基于点云密度的智能下采样
+        target_points = _P["downsample_limit"]
+        voxel_size = _estimate_optimal_voxel_size(xyz, target_points)
+        
+        try:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(xyz)
+            pcd = pcd.voxel_down_sample(voxel_size)
+            xyz = np.asarray(pcd.points)
+        except Exception as e:
+            # 回退到简单下采样
+            step = max(1, int(xyz.shape[0] / target_points))
+            xyz = xyz[::step]
+    
+    return xyz
+
+def _process_ground_points(xyz: np.ndarray) -> np.ndarray:
+    """
+    地面点检测和处理，保留部分地面点用于配准
+    """
+    try:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(xyz)
+        
+        # RANSAC平面分割检测地面
+        plane_model, inliers = pcd.segment_plane(
+            distance_threshold=0.05,
+            ransac_n=3,
+            num_iterations=1000
+        )
+        
+        if len(inliers) > len(xyz) * 0.3:  # 如果地面点过多
+            # 保留30%的地面点，用于位姿估计
+            ground_points = np.asarray(pcd.select_by_index(inliers).points)
+            non_ground_points = np.asarray(pcd.select_by_index(inliers, invert=True).points)
+            
+            # 均匀采样地面点
+            if len(ground_points) > 1000:
+                indices = np.random.choice(len(ground_points), 1000, replace=False)
+                ground_points = ground_points[indices]
+            
+            xyz = np.vstack([non_ground_points, ground_points])
+    except Exception as e:
+        print(f"[WARNING] 地面点处理失败: {e}")
+    
+    return xyz
+
+def _estimate_optimal_voxel_size(xyz: np.ndarray, target_points: int) -> float:
+    """
+    估计最优体素大小进行下采样
+    """
+    if xyz.size == 0:
+        return 0.1
+    
+    # 计算点云包围盒
+    min_bound = np.min(xyz, axis=0)
+    max_bound = np.max(xyz, axis=0)
+    bbox_volume = np.prod(max_bound - min_bound)
+    
+    # 基于目标点数估算体素大小
+    target_density = target_points / bbox_volume if bbox_volume > 0 else 1000
+    voxel_volume = 1.0 / target_density
+    voxel_size = np.cbrt(voxel_volume)
+    
+    # 限制体素大小范围
+    voxel_size = np.clip(voxel_size, 0.05, 0.5)
+    
+    return float(voxel_size)
 # ---------------------------------------------------------------------------
 # 改进的主要 SLAM 演示类
 # ---------------------------------------------------------------------------
