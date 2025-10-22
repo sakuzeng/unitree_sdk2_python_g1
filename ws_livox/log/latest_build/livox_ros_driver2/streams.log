@@ -1,0 +1,622 @@
+[0.022s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2 -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2
+[0.102s] -- The C compiler identification is GNU 9.4.0
+[0.191s] -- The CXX compiler identification is GNU 9.4.0
+[0.202s] -- Detecting C compiler ABI info
+[0.283s] -- Detecting C compiler ABI info - done
+[0.301s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.302s] -- Detecting C compile features
+[0.302s] -- Detecting C compile features - done
+[0.308s] -- Detecting CXX compiler ABI info
+[0.396s] -- Detecting CXX compiler ABI info - done
+[0.416s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.416s] -- Detecting CXX compile features
+[0.417s] -- Detecting CXX compile features - done
+[0.419s] -- livox_ros_driver2 version: 1.2.4
+[0.419s] -- Found ament_cmake_auto: 0.9.12 (/opt/ros/foxy/share/ament_cmake_auto/cmake)
+[0.455s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[0.455s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[0.748s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.861s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.868s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[1.096s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.198s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[1.200s] -- Using RMW implementation 'rmw_cyclonedds_cpp' as default
+[1.911s] -- Eigen found (include: /usr/include/eigen3, version: 3.3.7)
+[2.017s] -- The imported target "vtkParseOGLExt" references the file
+[2.018s]    "/usr/bin/vtkParseOGLExt-7.1"
+[2.019s] but this file does not exist.  Possible reasons include:
+[2.019s] * The file was deleted, renamed, or moved to another location.
+[2.019s] * An install or uninstall procedure did not complete successfully.
+[2.020s] * The installation package was faulty and contained
+[2.020s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[2.020s] but not all the files it references.
+[2.021s] 
+[2.021s] -- The imported target "vtkRenderingPythonTkWidgets" references the file
+[2.021s]    "/usr/lib/aarch64-linux-gnu/libvtkRenderingPythonTkWidgets.so"
+[2.021s] but this file does not exist.  Possible reasons include:
+[2.022s] * The file was deleted, renamed, or moved to another location.
+[2.022s] * An install or uninstall procedure did not complete successfully.
+[2.022s] * The installation package was faulty and contained
+[2.022s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[2.023s] but not all the files it references.
+[2.023s] 
+[2.023s] -- The imported target "vtk" references the file
+[2.024s]    "/usr/bin/vtk"
+[2.024s] but this file does not exist.  Possible reasons include:
+[2.024s] * The file was deleted, renamed, or moved to another location.
+[2.024s] * An install or uninstall procedure did not complete successfully.
+[2.025s] * The installation package was faulty and contained
+[2.025s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[2.025s] but not all the files it references.
+[2.025s] 
+[2.026s] -- The imported target "pvtk" references the file
+[2.026s]    "/usr/bin/pvtk"
+[2.026s] but this file does not exist.  Possible reasons include:
+[2.026s] * The file was deleted, renamed, or moved to another location.
+[2.027s] * An install or uninstall procedure did not complete successfully.
+[2.027s] * The installation package was faulty and contained
+[2.027s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[2.027s] but not all the files it references.
+[2.028s] 
+[2.059s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.059s]   The package name passed to `find_package_handle_standard_args` (USB_10)
+[2.060s]   does not match the name of the calling package (OpenNI).  This can lead to
+[2.060s]   problems in calling code that expects `find_package` result variables
+[2.060s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.060s] Call Stack (most recent call first):
+[2.060s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/Modules/FindOpenNI.cmake:28 (find_package_handle_standard_args)
+[2.060s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:179 (find_package)
+[2.061s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:322 (find_openni)
+[2.061s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.061s]   CMakeLists.txt:226 (find_package)
+[2.062s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.062s] [0m
+[2.062s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[2.071s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.072s]   The package name passed to `find_package_handle_standard_args` (USB_10)
+[2.072s]   does not match the name of the calling package (OpenNI2).  This can lead to
+[2.072s]   problems in calling code that expects `find_package` result variables
+[2.072s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.072s] Call Stack (most recent call first):
+[2.072s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/Modules/FindOpenNI2.cmake:28 (find_package_handle_standard_args)
+[2.072s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:193 (find_package)
+[2.073s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:324 (find_openni2)
+[2.073s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.073s]   CMakeLists.txt:226 (find_package)
+[2.073s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.073s] [0m
+[2.073s] -- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+[2.074s] [0m** WARNING ** io features related to pcap will be disabled[0m
+[2.074s] [0m** WARNING ** io features related to png will be disabled[0m
+[2.093s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.093s]   The package name passed to `find_package_handle_standard_args` (libusb-1.0)
+[2.093s]   does not match the name of the calling package (PCL).  This can lead to
+[2.093s]   problems in calling code that expects `find_package` result variables
+[2.093s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.093s] Call Stack (most recent call first):
+[2.093s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:291 (find_package_handle_standard_args)
+[2.094s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:338 (find_libusb)
+[2.094s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.094s]   CMakeLists.txt:226 (find_package)
+[2.094s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.094s] [0m
+[2.094s] [0m** WARNING ** io features related to libusb-1.0 will be disabled[0m
+[2.103s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.103s]   The package name passed to `find_package_handle_standard_args` (USB_10)
+[2.103s]   does not match the name of the calling package (OpenNI).  This can lead to
+[2.103s]   problems in calling code that expects `find_package` result variables
+[2.103s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.103s] Call Stack (most recent call first):
+[2.103s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/Modules/FindOpenNI.cmake:28 (find_package_handle_standard_args)
+[2.104s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:179 (find_package)
+[2.104s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:322 (find_openni)
+[2.104s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.104s]   CMakeLists.txt:226 (find_package)
+[2.104s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.104s] [0m
+[2.105s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[2.114s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.114s]   The package name passed to `find_package_handle_standard_args` (USB_10)
+[2.115s]   does not match the name of the calling package (OpenNI2).  This can lead to
+[2.115s]   problems in calling code that expects `find_package` result variables
+[2.115s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.115s] Call Stack (most recent call first):
+[2.115s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/Modules/FindOpenNI2.cmake:28 (find_package_handle_standard_args)
+[2.116s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:193 (find_package)
+[2.116s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:324 (find_openni2)
+[2.116s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.116s]   CMakeLists.txt:226 (find_package)
+[2.117s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.117s] [0m
+[2.117s] -- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+[2.137s] -- QHULL found (include: /usr/include, lib: optimized;/usr/lib/aarch64-linux-gnu/libqhull.so;debug;/usr/lib/aarch64-linux-gnu/libqhull.so)
+[2.148s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.148s]   The package name passed to `find_package_handle_standard_args` (USB_10)
+[2.149s]   does not match the name of the calling package (OpenNI).  This can lead to
+[2.149s]   problems in calling code that expects `find_package` result variables
+[2.149s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.149s] Call Stack (most recent call first):
+[2.149s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/Modules/FindOpenNI.cmake:28 (find_package_handle_standard_args)
+[2.149s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:179 (find_package)
+[2.149s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:322 (find_openni)
+[2.149s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:548 (find_external_library)
+[2.149s]   CMakeLists.txt:226 (find_package)
+[2.150s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.150s] [0m
+[2.150s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[2.169s] -- looking for PCL_COMMON
+[2.169s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.169s]   The package name passed to `find_package_handle_standard_args` (PCL_COMMON)
+[2.169s]   does not match the name of the calling package (PCL).  This can lead to
+[2.169s]   problems in calling code that expects `find_package` result variables
+[2.169s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.169s] Call Stack (most recent call first):
+[2.170s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.170s]   CMakeLists.txt:226 (find_package)
+[2.170s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.170s] [0m
+[2.170s] -- looking for PCL_KDTREE
+[2.170s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.170s]   The package name passed to `find_package_handle_standard_args` (PCL_KDTREE)
+[2.170s]   does not match the name of the calling package (PCL).  This can lead to
+[2.171s]   problems in calling code that expects `find_package` result variables
+[2.171s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.171s] Call Stack (most recent call first):
+[2.171s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.171s]   CMakeLists.txt:226 (find_package)
+[2.171s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.171s] [0m
+[2.172s] -- looking for PCL_OCTREE
+[2.172s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.172s]   The package name passed to `find_package_handle_standard_args` (PCL_OCTREE)
+[2.172s]   does not match the name of the calling package (PCL).  This can lead to
+[2.172s]   problems in calling code that expects `find_package` result variables
+[2.172s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.172s] Call Stack (most recent call first):
+[2.172s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.173s]   CMakeLists.txt:226 (find_package)
+[2.173s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.173s] [0m
+[2.173s] -- looking for PCL_SEARCH
+[2.173s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.173s]   The package name passed to `find_package_handle_standard_args` (PCL_SEARCH)
+[2.173s]   does not match the name of the calling package (PCL).  This can lead to
+[2.173s]   problems in calling code that expects `find_package` result variables
+[2.174s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.174s] Call Stack (most recent call first):
+[2.174s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.174s]   CMakeLists.txt:226 (find_package)
+[2.174s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.174s] [0m
+[2.174s] -- looking for PCL_SAMPLE_CONSENSUS
+[2.174s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.175s]   The package name passed to `find_package_handle_standard_args`
+[2.175s]   (PCL_SAMPLE_CONSENSUS) does not match the name of the calling package
+[2.175s]   (PCL).  This can lead to problems in calling code that expects
+[2.175s]   `find_package` result variables (e.g., `_FOUND`) to follow a certain
+[2.175s]   pattern.
+[2.175s] Call Stack (most recent call first):
+[2.175s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.175s]   CMakeLists.txt:226 (find_package)
+[2.175s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.176s] [0m
+[2.176s] -- looking for PCL_FILTERS
+[2.176s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.176s]   The package name passed to `find_package_handle_standard_args`
+[2.176s]   (PCL_FILTERS) does not match the name of the calling package (PCL).  This
+[2.176s]   can lead to problems in calling code that expects `find_package` result
+[2.176s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.177s] Call Stack (most recent call first):
+[2.177s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.177s]   CMakeLists.txt:226 (find_package)
+[2.177s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.177s] [0m
+[2.178s] -- looking for PCL_2D
+[2.178s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.178s]   The package name passed to `find_package_handle_standard_args` (PCL_2D)
+[2.178s]   does not match the name of the calling package (PCL).  This can lead to
+[2.178s]   problems in calling code that expects `find_package` result variables
+[2.178s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.178s] Call Stack (most recent call first):
+[2.178s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:619 (find_package_handle_standard_args)
+[2.179s]   CMakeLists.txt:226 (find_package)
+[2.179s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.179s] [0m
+[2.179s] -- looking for PCL_GEOMETRY
+[2.179s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.180s]   The package name passed to `find_package_handle_standard_args`
+[2.180s]   (PCL_GEOMETRY) does not match the name of the calling package (PCL).  This
+[2.180s]   can lead to problems in calling code that expects `find_package` result
+[2.180s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.180s] Call Stack (most recent call first):
+[2.180s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:619 (find_package_handle_standard_args)
+[2.180s]   CMakeLists.txt:226 (find_package)
+[2.181s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.181s] [0m
+[2.181s] -- looking for PCL_IO
+[2.181s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.181s]   The package name passed to `find_package_handle_standard_args` (PCL_IO)
+[2.181s]   does not match the name of the calling package (PCL).  This can lead to
+[2.181s]   problems in calling code that expects `find_package` result variables
+[2.182s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.182s] Call Stack (most recent call first):
+[2.182s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.182s]   CMakeLists.txt:226 (find_package)
+[2.182s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.182s] [0m
+[2.183s] -- looking for PCL_FEATURES
+[2.183s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.183s]   The package name passed to `find_package_handle_standard_args`
+[2.183s]   (PCL_FEATURES) does not match the name of the calling package (PCL).  This
+[2.183s]   can lead to problems in calling code that expects `find_package` result
+[2.183s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.183s] Call Stack (most recent call first):
+[2.183s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.184s]   CMakeLists.txt:226 (find_package)
+[2.184s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.184s] [0m
+[2.184s] -- looking for PCL_ML
+[2.184s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.184s]   The package name passed to `find_package_handle_standard_args` (PCL_ML)
+[2.184s]   does not match the name of the calling package (PCL).  This can lead to
+[2.185s]   problems in calling code that expects `find_package` result variables
+[2.185s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.185s] Call Stack (most recent call first):
+[2.185s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.185s]   CMakeLists.txt:226 (find_package)
+[2.185s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.185s] [0m
+[2.185s] -- looking for PCL_SEGMENTATION
+[2.186s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.186s]   The package name passed to `find_package_handle_standard_args`
+[2.186s]   (PCL_SEGMENTATION) does not match the name of the calling package (PCL).
+[2.186s]   This can lead to problems in calling code that expects `find_package`
+[2.186s]   result variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.186s] Call Stack (most recent call first):
+[2.187s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.187s]   CMakeLists.txt:226 (find_package)
+[2.187s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.187s] [0m
+[2.187s] -- looking for PCL_VISUALIZATION
+[2.187s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.187s]   The package name passed to `find_package_handle_standard_args`
+[2.187s]   (PCL_VISUALIZATION) does not match the name of the calling package (PCL).
+[2.188s]   This can lead to problems in calling code that expects `find_package`
+[2.188s]   result variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.188s] Call Stack (most recent call first):
+[2.188s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.188s]   CMakeLists.txt:226 (find_package)
+[2.188s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.188s] [0m
+[2.188s] -- looking for PCL_SURFACE
+[2.188s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.189s]   The package name passed to `find_package_handle_standard_args`
+[2.189s]   (PCL_SURFACE) does not match the name of the calling package (PCL).  This
+[2.189s]   can lead to problems in calling code that expects `find_package` result
+[2.189s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.189s] Call Stack (most recent call first):
+[2.189s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.189s]   CMakeLists.txt:226 (find_package)
+[2.189s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.189s] [0m
+[2.189s] -- looking for PCL_REGISTRATION
+[2.190s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.190s]   The package name passed to `find_package_handle_standard_args`
+[2.190s]   (PCL_REGISTRATION) does not match the name of the calling package (PCL).
+[2.190s]   This can lead to problems in calling code that expects `find_package`
+[2.190s]   result variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.190s] Call Stack (most recent call first):
+[2.190s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.190s]   CMakeLists.txt:226 (find_package)
+[2.190s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.191s] [0m
+[2.191s] -- looking for PCL_KEYPOINTS
+[2.193s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.193s]   The package name passed to `find_package_handle_standard_args`
+[2.193s]   (PCL_KEYPOINTS) does not match the name of the calling package (PCL).  This
+[2.193s]   can lead to problems in calling code that expects `find_package` result
+[2.193s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.193s] Call Stack (most recent call first):
+[2.193s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.193s]   CMakeLists.txt:226 (find_package)
+[2.194s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.194s] [0m
+[2.194s] -- looking for PCL_TRACKING
+[2.194s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.194s]   The package name passed to `find_package_handle_standard_args`
+[2.194s]   (PCL_TRACKING) does not match the name of the calling package (PCL).  This
+[2.194s]   can lead to problems in calling code that expects `find_package` result
+[2.194s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.194s] Call Stack (most recent call first):
+[2.195s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.195s]   CMakeLists.txt:226 (find_package)
+[2.195s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.195s] [0m
+[2.195s] -- looking for PCL_RECOGNITION
+[2.195s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.195s]   The package name passed to `find_package_handle_standard_args`
+[2.195s]   (PCL_RECOGNITION) does not match the name of the calling package (PCL).
+[2.195s]   This can lead to problems in calling code that expects `find_package`
+[2.196s]   result variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.196s] Call Stack (most recent call first):
+[2.196s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.196s]   CMakeLists.txt:226 (find_package)
+[2.196s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.196s] [0m
+[2.196s] -- looking for PCL_STEREO
+[2.197s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.197s]   The package name passed to `find_package_handle_standard_args` (PCL_STEREO)
+[2.197s]   does not match the name of the calling package (PCL).  This can lead to
+[2.197s]   problems in calling code that expects `find_package` result variables
+[2.197s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.197s] Call Stack (most recent call first):
+[2.197s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.197s]   CMakeLists.txt:226 (find_package)
+[2.197s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.198s] [0m
+[2.198s] -- looking for PCL_APPS
+[2.198s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.198s]   The package name passed to `find_package_handle_standard_args` (PCL_APPS)
+[2.198s]   does not match the name of the calling package (PCL).  This can lead to
+[2.198s]   problems in calling code that expects `find_package` result variables
+[2.198s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.199s] Call Stack (most recent call first):
+[2.199s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.199s]   CMakeLists.txt:226 (find_package)
+[2.199s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.199s] [0m
+[2.199s] -- looking for PCL_IN_HAND_SCANNER
+[2.199s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.199s]   The package name passed to `find_package_handle_standard_args`
+[2.199s]   (PCL_IN_HAND_SCANNER) does not match the name of the calling package (PCL).
+[2.200s]   This can lead to problems in calling code that expects `find_package`
+[2.200s]   result variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.200s] Call Stack (most recent call first):
+[2.200s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:619 (find_package_handle_standard_args)
+[2.200s]   CMakeLists.txt:226 (find_package)
+[2.200s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.200s] [0m
+[2.200s] -- looking for PCL_POINT_CLOUD_EDITOR
+[2.200s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.201s]   The package name passed to `find_package_handle_standard_args`
+[2.201s]   (PCL_POINT_CLOUD_EDITOR) does not match the name of the calling package
+[2.201s]   (PCL).  This can lead to problems in calling code that expects
+[2.201s]   `find_package` result variables (e.g., `_FOUND`) to follow a certain
+[2.201s]   pattern.
+[2.201s] Call Stack (most recent call first):
+[2.201s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:619 (find_package_handle_standard_args)
+[2.201s]   CMakeLists.txt:226 (find_package)
+[2.201s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.202s] [0m
+[2.202s] -- looking for PCL_OUTOFCORE
+[2.202s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.202s]   The package name passed to `find_package_handle_standard_args`
+[2.202s]   (PCL_OUTOFCORE) does not match the name of the calling package (PCL).  This
+[2.202s]   can lead to problems in calling code that expects `find_package` result
+[2.202s]   variables (e.g., `_FOUND`) to follow a certain pattern.
+[2.202s] Call Stack (most recent call first):
+[2.202s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.203s]   CMakeLists.txt:226 (find_package)
+[2.203s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.203s] [0m
+[2.203s] -- looking for PCL_PEOPLE
+[2.203s] [33mCMake Warning (dev) at /home/unitree/.local/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+[2.203s]   The package name passed to `find_package_handle_standard_args` (PCL_PEOPLE)
+[2.203s]   does not match the name of the calling package (PCL).  This can lead to
+[2.203s]   problems in calling code that expects `find_package` result variables
+[2.203s]   (e.g., `_FOUND`) to follow a certain pattern.
+[2.204s] Call Stack (most recent call first):
+[2.204s]   /usr/lib/aarch64-linux-gnu/cmake/pcl/PCLConfig.cmake:616 (find_package_handle_standard_args)
+[2.204s]   CMakeLists.txt:226 (find_package)
+[2.204s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[2.204s] [0m
+[2.204s] [0m/usr/include/apr-1.0[0m
+[2.204s] [0mapr-1[0m
+[2.242s] -- Found PythonInterp: /usr/bin/python3 (found version "3.8.10") 
+[2.408s] -- Found ament_cmake_ros: 0.9.2 (/opt/ros/foxy/share/ament_cmake_ros/cmake)
+[2.711s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.800s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.840s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3.5") 
+[2.840s] -- Found python_cmake_module: 0.8.1 (/opt/ros/foxy/share/python_cmake_module/cmake)
+[2.879s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[2.879s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.8
+[2.879s] -- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.8.so
+[3.022s] -- Found ament_lint_auto: 0.9.8 (/opt/ros/foxy/share/ament_lint_auto/cmake)
+[3.049s] -- Added test 'copyright' to check source files copyright and LICENSE
+[3.059s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[3.062s] -- Configured cppcheck include dirs: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2/3rdparty;/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2/src
+[3.063s] -- Configured cppcheck exclude dirs and/or files: 
+[3.072s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[3.072s] -- Configured cpplint exclude dirs and/or files: 
+[3.074s] -- Added test 'flake8' to check Python code syntax and style conventions
+[3.077s] -- Added test 'lint_cmake' to check CMake code style
+[3.078s] -- Added test 'pep257' to check Python code against some of the style conventions in PEP 257
+[3.087s] -- Added test 'uncrustify' to check C / C++ code style
+[3.088s] -- Configured uncrustify additional arguments: 
+[3.089s] -- Added test 'xmllint' to check XML markup files
+[3.095s] -- Configuring done
+[3.253s] -- Generating done
+[3.262s] -- Build files have been written to: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2
+[3.303s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2 -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2
+[3.312s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2 -- -j8 -l8
+[3.350s] [  1%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2_node.dir/rclcpp_components/node_main_livox_ros_driver2_node.cpp.o[0m
+[3.351s] [  3%] Built target livox_interfaces2__cpp
+[3.351s] [  5%] [32mBuilding C object CMakeFiles/livox_interfaces2__rosidl_generator_c.dir/rosidl_generator_c/livox_ros_driver2/msg/detail/custom_point__functions.c.o[0m
+[3.351s] [  7%] [32mBuilding C object CMakeFiles/livox_interfaces2__rosidl_generator_c.dir/rosidl_generator_c/livox_ros_driver2/msg/detail/custom_msg__functions.c.o[0m
+[3.366s] [ 10%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/livox_ros_driver2/msg/detail/custom_point__type_support.cpp.o[0m
+[3.368s] [ 12%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/livox_ros_driver2/msg/custom_msg__type_support.cpp.o[0m
+[3.369s] [ 14%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/livox_ros_driver2/msg/detail/dds_fastrtps/custom_msg__type_support.cpp.o[0m
+[3.374s] [ 15%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/livox_ros_driver2/msg/detail/dds_fastrtps/custom_point__type_support.cpp.o[0m
+[3.374s] [ 15%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/livox_ros_driver2/msg/custom_point__type_support.cpp.o[0m
+[3.429s] [ 17%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/livox_ros_driver2/msg/detail/custom_msg__type_support.cpp.o[0m
+[3.445s] [ 19%] [32m[1mLinking C shared library liblivox_ros_driver2__rosidl_generator_c.so[0m
+[3.491s] [ 21%] Built target livox_interfaces2__rosidl_generator_c
+[3.508s] [ 22%] [32mBuilding C object CMakeFiles/livox_interfaces2__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/livox_ros_driver2/msg/detail/custom_point__type_support.c.o[0m
+[3.571s] [ 24%] [32mBuilding C object CMakeFiles/livox_interfaces2__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/livox_ros_driver2/msg/detail/custom_msg__type_support.c.o[0m
+[3.673s] [ 26%] [32m[1mLinking C shared library liblivox_ros_driver2__rosidl_typesupport_introspection_c.so[0m
+[3.780s] [ 28%] Built target livox_interfaces2__rosidl_typesupport_introspection_c
+[3.797s] [ 29%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_c.dir/rosidl_typesupport_c/livox_ros_driver2/msg/custom_point__type_support.cpp.o[0m
+[3.860s] [ 31%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_c.dir/rosidl_typesupport_c/livox_ros_driver2/msg/custom_msg__type_support.cpp.o[0m
+[3.921s] [ 33%] [32m[1mLinking CXX shared library liblivox_ros_driver2__rosidl_typesupport_c.so[0m
+[3.968s] [ 35%] Built target livox_interfaces2__rosidl_typesupport_c
+[4.060s] [ 36%] [32m[1mLinking CXX shared library liblivox_ros_driver2__rosidl_typesupport_cpp.so[0m
+[4.097s] [ 38%] [32m[1mLinking CXX shared library liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so[0m
+[4.105s] [ 40%] Built target livox_interfaces2__rosidl_typesupport_cpp
+[4.229s] [ 42%] Built target livox_interfaces2__rosidl_typesupport_introspection_cpp
+[4.269s] [ 43%] [32m[1mLinking CXX shared library liblivox_ros_driver2__rosidl_typesupport_fastrtps_cpp.so[0m
+[4.384s] [ 45%] Built target livox_interfaces2__rosidl_typesupport_fastrtps_cpp
+[4.399s] [ 49%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/livox_ros_driver2/msg/detail/custom_point__type_support_c.cpp.o[0m
+[4.399s] [ 49%] [32mBuilding CXX object CMakeFiles/livox_interfaces2__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/livox_ros_driver2/msg/detail/custom_msg__type_support_c.cpp.o[0m
+[5.026s] [ 50%] [32m[1mLinking CXX shared library liblivox_ros_driver2__rosidl_typesupport_fastrtps_c.so[0m
+[5.147s] [ 52%] Built target livox_interfaces2__rosidl_typesupport_fastrtps_c
+[5.161s] [ 52%] Built target livox_interfaces2
+[5.177s] [ 61%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/driver_node.cpp.o[0m
+[5.177s] [ 61%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/livox_ros_driver2.cpp.o[0m
+[5.177s] [ 61%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/lddc.cpp.o[0m
+[5.178s] [ 61%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/lds.cpp.o[0m
+[5.178s] [ 61%] Built target livox_interfaces2__py
+[5.178s] [ 64%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/lds_lidar.cpp.o[0m
+[5.179s] [ 64%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/comm.cpp.o[0m
+[5.221s] [ 66%] [32mBuilding C object CMakeFiles/livox_interfaces2__python.dir/rosidl_generator_py/livox_ros_driver2/msg/_custom_point_s.c.o[0m
+[5.436s] [ 68%] [32mBuilding C object CMakeFiles/livox_interfaces2__python.dir/rosidl_generator_py/livox_ros_driver2/msg/_custom_msg_s.c.o[0m
+[5.653s] [ 70%] [32m[1mLinking C shared library rosidl_generator_py/livox_ros_driver2/liblivox_interfaces2__python.so[0m
+[5.832s] [ 70%] Built target livox_interfaces2__python
+[5.861s] [ 71%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/ldq.cpp.o[0m
+[6.084s] [ 73%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/semaphore.cpp.o[0m
+[6.285s] [ 75%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/lidar_imu_data_queue.cpp.o[0m
+[6.638s] [ 77%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/cache_index.cpp.o[0m
+[6.674s] [ 78%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/comm/pub_handler.cpp.o[0m
+[6.900s] [ 80%] [32mBuilding C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[7.089s] [ 82%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/parse_cfg_file/parse_cfg_file.cpp.o[0m
+[7.095s] [ 84%] [32m[1mLinking CXX shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so[0m
+[7.213s] [ 84%] Built target livox_ros_driver2__rosidl_typesupport_fastrtps_c__pyext
+[7.247s] [ 85%] [32mBuilding C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[7.433s] [ 87%] [32m[1mLinking C shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so[0m
+[7.479s] [ 87%] Built target livox_ros_driver2__rosidl_typesupport_introspection_c__pyext
+[7.496s] [ 89%] [32mBuilding C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c.o[0m
+[7.643s] [ 91%] [32m[1mLinking C shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so[0m
+[7.693s] [ 91%] Built target livox_ros_driver2__rosidl_typesupport_c__pyext
+[7.698s] [ 92%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/parse_cfg_file/parse_livox_lidar_cfg.cpp.o[0m
+[7.798s] [ 94%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/call_back/lidar_common_callback.cpp.o[0m
+[8.222s] [ 96%] [32m[1mLinking CXX executable livox_ros_driver2_node[0m
+[8.513s] [ 96%] Built target livox_ros_driver2_node
+[8.519s] [ 98%] [32mBuilding CXX object CMakeFiles/livox_ros_driver2.dir/src/call_back/livox_lidar_callback.cpp.o[0m
+[20.610s] [100%] [32m[1mLinking CXX shared library liblivox_ros_driver2.so[0m
+[22.159s] [100%] Built target livox_ros_driver2
+[22.170s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2 -- -j8 -l8
+[22.338s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2
+[22.344s] -- Install configuration: ""
+[22.345s] -- Execute custom install script
+[22.345s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2
+[22.350s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/custom_msg.h
+[22.353s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/custom_point.h
+[22.356s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__functions.h
+[22.359s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__struct.h
+[22.363s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__type_support.h
+[22.368s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__functions.h
+[22.371s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__struct.h
+[22.374s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__type_support.h
+[22.378s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/rosidl_generator_c__visibility_control.h
+[22.381s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/library_path.sh
+[22.385s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/library_path.dsv
+[22.390s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_c.h
+[22.393s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_c.h
+[22.397s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[22.401s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_c.so
+[22.406s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_cpp.hpp
+[22.409s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_cpp.hpp
+[22.415s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[22.418s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_cpp.so
+[22.423s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_c.h
+[22.427s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_c.h
+[22.431s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[22.435s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/custom_msg.hpp
+[22.438s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/custom_point.hpp
+[22.441s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__builder.hpp
+[22.445s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__struct.hpp
+[22.449s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__traits.hpp
+[22.453s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__type_support.hpp
+[22.457s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__builder.hpp
+[22.461s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__struct.hpp
+[22.465s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__traits.hpp
+[22.469s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__type_support.hpp
+[22.473s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/rosidl_generator_cpp__visibility_control.hpp
+[22.478s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_cpp.hpp
+[22.480s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/include/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_cpp.hpp
+[22.484s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/pythonpath.sh
+[22.487s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/pythonpath.dsv
+[22.491s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/__init__.py
+[22.495s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/msg/__init__.py
+[22.499s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/msg/_custom_msg.py
+[22.502s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/msg/_custom_point.py
+[22.506s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so
+[22.509s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so
+[22.514s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so
+[22.520s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_interfaces2__python.so
+[22.524s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomPoint.idl
+[22.527s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomMsg.idl
+[22.531s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomPoint.msg
+[22.534s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomMsg.msg
+[22.538s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/livox_ros_driver2/livox_ros_driver2_node
+[22.543s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2.so
+[22.547s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/config/HAP_config.json
+[22.553s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/config/MID360_config.json
+[22.555s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/config/display_point_cloud_ROS1.rviz
+[22.560s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/config/display_point_cloud_ROS2.rviz
+[22.563s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/config/mixed_HAP_MID360_config.json
+[22.569s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/msg_HAP_launch.py
+[22.572s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py
+[22.576s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/rviz_HAP_launch.py
+[22.581s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/rviz_MID360_launch.py
+[22.586s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/rviz_mixed.py
+[22.588s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/ament_index/resource_index/package_run_dependencies/livox_ros_driver2
+[22.594s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/ament_index/resource_index/parent_prefix_path/livox_ros_driver2
+[22.597s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/ament_prefix_path.sh
+[22.602s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/ament_prefix_path.dsv
+[22.606s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/path.sh
+[22.611s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/environment/path.dsv
+[22.615s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.bash
+[22.620s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.sh
+[22.623s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.zsh
+[22.629s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.dsv
+[22.631s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/package.dsv
+[22.637s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/ament_index/resource_index/packages/livox_ros_driver2
+[22.640s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/ament_index/resource_index/rclcpp_components/livox_ros_driver2
+[22.643s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake-extras.cmake
+[22.648s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_dependencies-extras.cmake
+[22.651s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_libraries-extras.cmake
+[22.656s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_targets-extras.cmake
+[22.659s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_include_directories-extras.cmake
+[22.664s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[22.667s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[22.671s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2Config.cmake
+[22.678s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2Config-version.cmake
+[22.683s] -- Symlinking: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/package.xml
+[22.687s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_c.so
+[22.688s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_c.so" to ""
+[22.689s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_c.so
+[22.690s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_c.so" to ""
+[22.691s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_c.so
+[22.692s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_c.so" to ""
+[22.693s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so
+[22.695s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so" to ""
+[22.695s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_cpp.so
+[22.696s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_cpp.so" to ""
+[22.744s] Compiling '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib/python3.8/site-packages/livox_ros_driver2/__init__.py'...
+[22.753s] -- Old export file "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_generator_cExport.cmake" will be replaced.  Removing files [/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_generator_cExport-noconfig.cmake].
+[22.754s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_generator_cExport.cmake
+[22.755s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_generator_cExport-noconfig.cmake
+[22.755s] -- Old export file "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cExport.cmake" will be replaced.  Removing files [/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cExport-noconfig.cmake].
+[22.756s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cExport.cmake
+[22.756s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cExport-noconfig.cmake
+[22.757s] -- Old export file "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cExport.cmake" will be replaced.  Removing files [/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cExport-noconfig.cmake].
+[22.757s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cExport.cmake
+[22.758s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cExport-noconfig.cmake
+[22.759s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_generator_cppExport.cmake
+[22.760s] -- Old export file "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cppExport.cmake" will be replaced.  Removing files [/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cppExport-noconfig.cmake].
+[22.760s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cppExport.cmake
+[22.760s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+[22.761s] -- Old export file "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cppExport.cmake" will be replaced.  Removing files [/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cppExport-noconfig.cmake].
+[22.761s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cppExport.cmake
+[22.762s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_interfaces2__rosidl_typesupport_cppExport-noconfig.cmake
+[22.767s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /home/unitree/.local/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2

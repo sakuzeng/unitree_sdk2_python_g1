@@ -1,0 +1,7 @@
+{
+  "package_name": "livox_ros_driver2",
+  "non_idl_tuples": [
+    "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2:msg/CustomPoint.msg",
+    "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/src/livox_ros_driver2:msg/CustomMsg.msg"
+  ]
+}

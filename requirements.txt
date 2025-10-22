@@ -17,3 +17,7 @@ scikit-image
 soundfile
 librosa
 deepfilternet
+open3d
+scipy
+scipy>=1.9.0
+Pillow>=9.0.0

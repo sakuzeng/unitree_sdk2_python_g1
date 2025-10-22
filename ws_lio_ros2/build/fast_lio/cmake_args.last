@@ -1,0 +1,1 @@
+['-DCMAKE_BUILD_TYPE=Release', '-DPython3_EXECUTABLE=/usr/bin/python3.8', '-DPYTHON_EXECUTABLE=/usr/bin/python3.8']

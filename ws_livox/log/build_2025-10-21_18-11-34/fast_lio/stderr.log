@@ -1,0 +1,20 @@
+[0mCurrent CPU archtecture: aarch64[0m
+/opt/ros/foxy/lib/python3.8/site-packages/ament_package/__init__.py:19: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+[31mCMake Error at CMakeLists.txt:60 (find_package):
+  By not providing "Findpcl_ros.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "pcl_ros", but
+  CMake did not find one.
+
+  Could not find a package configuration file provided by "pcl_ros" with any
+  of the following names:
+
+    pcl_rosConfig.cmake
+    pcl_ros-config.cmake
+
+  Add the installation prefix of "pcl_ros" to CMAKE_PREFIX_PATH or set
+  "pcl_ros_DIR" to a directory containing one of the above files.  If
+  "pcl_ros" provides a separate development package or SDK, be sure it has
+  been installed.
+
+[0m

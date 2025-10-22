@@ -1,0 +1,6 @@
+{
+  "package_name": "fast_lio",
+  "non_idl_tuples": [
+    "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2:msg/Pose6D.msg"
+  ]
+}

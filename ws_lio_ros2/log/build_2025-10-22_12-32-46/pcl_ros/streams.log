@@ -1,0 +1,229 @@
+[0.019s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/perception_pcl/pcl_ros -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3.8 -DPYTHON_EXECUTABLE=/usr/bin/python3.8 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros
+[0.111s] -- The C compiler identification is GNU 9.4.0
+[0.190s] -- The CXX compiler identification is GNU 9.4.0
+[0.198s] -- Check for working C compiler: /usr/bin/cc
+[0.327s] -- Check for working C compiler: /usr/bin/cc -- works
+[0.328s] -- Detecting C compiler ABI info
+[0.450s] -- Detecting C compiler ABI info - done
+[0.468s] -- Detecting C compile features
+[0.468s] -- Detecting C compile features - done
+[0.472s] -- Check for working CXX compiler: /usr/bin/c++
+[0.606s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[0.608s] -- Detecting CXX compiler ABI info
+[0.745s] -- Detecting CXX compiler ABI info - done
+[0.773s] -- Detecting CXX compile features
+[0.774s] -- Detecting CXX compile features - done
+[0.803s] -- Checking for module 'eigen3'
+[0.831s] --   Found eigen3, version 3.4.0
+[0.894s] -- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") 
+[0.894s] -- Eigen found (include: /usr/include/eigen3, version: 3.3.7)
+[1.002s] -- Checking for module 'flann'
+[1.027s] --   Found flann, version 1.9.1
+[1.101s] -- Found FLANN: /usr/lib/aarch64-linux-gnu/libflann_cpp.so  
+[1.184s] -- The imported target "vtkParseOGLExt" references the file
+[1.184s]    "/usr/bin/vtkParseOGLExt-7.1"
+[1.184s] but this file does not exist.  Possible reasons include:
+[1.184s] * The file was deleted, renamed, or moved to another location.
+[1.184s] * An install or uninstall procedure did not complete successfully.
+[1.184s] * The installation package was faulty and contained
+[1.184s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[1.185s] but not all the files it references.
+[1.185s] 
+[1.185s] -- The imported target "vtkRenderingPythonTkWidgets" references the file
+[1.185s]    "/usr/lib/aarch64-linux-gnu/libvtkRenderingPythonTkWidgets.so"
+[1.185s] but this file does not exist.  Possible reasons include:
+[1.185s] * The file was deleted, renamed, or moved to another location.
+[1.185s] * An install or uninstall procedure did not complete successfully.
+[1.185s] * The installation package was faulty and contained
+[1.185s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[1.186s] but not all the files it references.
+[1.186s] 
+[1.186s] -- The imported target "vtk" references the file
+[1.186s]    "/usr/bin/vtk"
+[1.186s] but this file does not exist.  Possible reasons include:
+[1.186s] * The file was deleted, renamed, or moved to another location.
+[1.186s] * An install or uninstall procedure did not complete successfully.
+[1.187s] * The installation package was faulty and contained
+[1.187s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[1.187s] but not all the files it references.
+[1.187s] 
+[1.187s] -- The imported target "pvtk" references the file
+[1.187s]    "/usr/bin/pvtk"
+[1.187s] but this file does not exist.  Possible reasons include:
+[1.187s] * The file was deleted, renamed, or moved to another location.
+[1.187s] * An install or uninstall procedure did not complete successfully.
+[1.188s] * The installation package was faulty and contained
+[1.188s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[1.188s] but not all the files it references.
+[1.188s] 
+[1.233s] -- Checking for module 'libusb-1.0'
+[1.259s] --   Found libusb-1.0, version 1.0.23
+[1.327s] -- Found USB_10: /usr/lib/aarch64-linux-gnu/libusb-1.0.so  
+[1.429s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[1.541s] -- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+[1.563s] -- Found libusb-1.0: /usr/include  
+[1.588s] -- Found Qhull: optimized;/usr/lib/aarch64-linux-gnu/libqhull.so;debug;/usr/lib/aarch64-linux-gnu/libqhull.so  
+[1.588s] -- QHULL found (include: /usr/include, lib: optimized;/usr/lib/aarch64-linux-gnu/libqhull.so;debug;/usr/lib/aarch64-linux-gnu/libqhull.so)
+[1.589s] -- Found PCL_COMMON: /usr/lib/aarch64-linux-gnu/libpcl_common.so  
+[1.591s] -- Could NOT find PCL_CORE (missing: PCL_CORE_LIBRARY PCL_CORE_INCLUDE_DIR) 
+[1.593s] -- Found PCL_KDTREE: /usr/lib/aarch64-linux-gnu/libpcl_kdtree.so  
+[1.595s] -- Found PCL_OCTREE: /usr/lib/aarch64-linux-gnu/libpcl_octree.so  
+[1.596s] -- Found PCL_SEARCH: /usr/lib/aarch64-linux-gnu/libpcl_search.so  
+[1.597s] -- Found PCL_2D: /usr/include/pcl-1.10  
+[1.599s] -- Found PCL_FEATURES: /usr/lib/aarch64-linux-gnu/libpcl_features.so  
+[1.601s] -- Found PCL_SAMPLE_CONSENSUS: /usr/lib/aarch64-linux-gnu/libpcl_sample_consensus.so  
+[1.603s] -- Found PCL_FILTERS: /usr/lib/aarch64-linux-gnu/libpcl_filters.so  
+[1.605s] -- Found PCL_IO: /usr/lib/aarch64-linux-gnu/libpcl_io.so  
+[1.605s] -- Found PCL_GEOMETRY: /usr/include/pcl-1.10  
+[1.607s] -- Found PCL_ML: /usr/lib/aarch64-linux-gnu/libpcl_ml.so  
+[1.609s] -- Found PCL_SEGMENTATION: /usr/lib/aarch64-linux-gnu/libpcl_segmentation.so  
+[1.611s] -- Found PCL_SURFACE: /usr/lib/aarch64-linux-gnu/libpcl_surface.so  
+[1.615s] -- Found ament_cmake_ros: 0.9.2 (/opt/ros/foxy/share/ament_cmake_ros/cmake)
+[1.666s] -- Found PythonInterp: /usr/bin/python3.8 (found suitable version "3.8.10", minimum required is "3") 
+[1.666s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3.8
+[1.998s] -- Found pcl_conversions: 2.2.1 (/opt/ros/foxy/share/pcl_conversions/cmake)
+[2.045s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.055s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[2.201s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[2.246s] -- Found FastRTPS: /opt/ros/foxy/include  
+[2.369s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.871s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[2.873s] -- Using RMW implementation 'rmw_cyclonedds_cpp' as default
+[2.875s] -- Looking for pthread.h
+[3.002s] -- Looking for pthread.h - found
+[3.002s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[3.137s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+[3.137s] -- Looking for pthread_create in pthreads
+[3.245s] -- Looking for pthread_create in pthreads - not found
+[3.246s] -- Looking for pthread_create in pthread
+[3.376s] -- Looking for pthread_create in pthread - found
+[3.379s] -- Found Threads: TRUE  
+[3.629s] -- Found tf2: 0.13.14 (/opt/ros/foxy/share/tf2/cmake)
+[3.647s] -- Found tf2_geometry_msgs: 0.13.14 (/opt/ros/foxy/share/tf2_geometry_msgs/cmake)
+[3.658s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/foxy/share/eigen3_cmake_module/cmake)
+[3.660s] -- Found Eigen3: TRUE (found version "3.3.7") 
+[4.265s] -- Found ament_lint_auto: 0.9.8 (/opt/ros/foxy/share/ament_lint_auto/cmake)
+[4.403s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[4.404s] -- Configured cppcheck include dirs: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/perception_pcl/pcl_ros/include
+[4.404s] -- Configured cppcheck exclude dirs and/or files: 
+[4.414s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[4.414s] -- Configured cpplint exclude dirs and/or files: 
+[4.416s] -- Added test 'flake8' to check Python code syntax and style conventions
+[4.419s] -- Added test 'lint_cmake' to check CMake code style
+[4.421s] -- Added test 'pep257' to check Python code against some of the style conventions in PEP 257
+[4.431s] -- Added test 'uncrustify' to check C / C++ code style
+[4.431s] -- Configured uncrustify additional arguments: 
+[4.433s] -- Added test 'xmllint' to check XML markup files
+[4.445s] -- Configuring done
+[4.531s] -- Generating done
+[4.534s] CMake Warning:
+[4.534s]   Manually-specified variables were not used by the project:
+[4.534s] 
+[4.534s]     Python3_EXECUTABLE
+[4.534s] 
+[4.534s] 
+[4.535s] -- Build files have been written to: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros
+[4.567s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/perception_pcl/pcl_ros -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3.8 -DPYTHON_EXECUTABLE=/usr/bin/python3.8 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros
+[4.573s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros -- -j8 -l8
+[4.658s] [35m[1mScanning dependencies of target pcl_ros_tf[0m
+[4.804s] [ 50%] [32mBuilding CXX object CMakeFiles/pcl_ros_tf.dir/src/transforms.cpp.o[0m
+[29.293s] [100%] [32m[1mLinking CXX shared library libpcl_ros_tf.so[0m
+[29.846s] [100%] Built target pcl_ros_tf
+[29.870s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros -- -j8 -l8
+[29.940s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros
+[29.961s] -- Install configuration: "Release"
+[29.961s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include
+[29.961s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/publisher.hpp
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/point_cloud.hpp
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/principal_curvatures.hpp
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/moment_invariants.hpp
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/normal_3d.hpp
+[29.962s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/normal_3d_omp.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/shot_omp.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/boundary.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/fpfh.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/pfh.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/vfh.hpp
+[29.963s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/feature.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/shot.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/fpfh_omp.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/features/normal_3d_tbb.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/pcl_nodelet.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/io
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/io/concatenate_data.hpp
+[29.964s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/io/pcd_io.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/io/concatenate_fields.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/io/bag_io.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/transforms.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/radius_outlier_removal.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/voxel_grid.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/filter.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/crop_box.hpp
+[29.965s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/extract_indices.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/statistical_outlier_removal.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/passthrough.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/filters/project_inliers.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/surface
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/surface/moving_least_squares.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/surface/convex_hull.hpp
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/impl
+[29.966s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/impl/transforms.hpp
+[29.967s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/segmentation
+[29.967s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/segmentation/segment_differences.hpp
+[29.967s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/segmentation/sac_segmentation.hpp
+[29.967s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/segmentation/extract_clusters.hpp
+[29.967s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/include/pcl_ros/segmentation/extract_polygonal_prism_data.hpp
+[29.968s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib/libpcl_ros_tf.so
+[29.969s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib/libpcl_ros_tf.so" to ""
+[29.969s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins
+[29.969s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet
+[29.969s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet/libpcl_ros_filters.xml
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet/libpcl_ros_surface.xml
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet/libpcl_ros_features.xml
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet/libpcl_ros_segmentation.xml
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/plugins/nodelet/libpcl_ros_io.xml
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples
+[29.970s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/data
+[29.971s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/data/.gitignore
+[29.971s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros
+[29.971s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/features
+[29.971s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/features/sample_normal_3d.launch
+[29.972s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/io
+[29.972s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/io/sample_concatenate_data.launch
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters/sample_voxel_grid.launch
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters/sample_statistical_outlier_removal.launch
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters/config
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters/config/statistical_outlier_removal.rviz
+[29.973s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/filters/config/voxel_grid.rviz
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/surface
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/surface/sample_convex_hull.launch
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/segmentation
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/samples/pcl_ros/segmentation/sample_extract_clusters.launch
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/library_path.sh
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/library_path.dsv
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/ament_index/resource_index/package_run_dependencies/pcl_ros
+[29.974s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/ament_index/resource_index/parent_prefix_path/pcl_ros
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/ament_prefix_path.sh
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/ament_prefix_path.dsv
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/path.sh
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/environment/path.dsv
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/local_setup.bash
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/local_setup.sh
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/local_setup.zsh
+[29.975s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/local_setup.dsv
+[29.976s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/package.dsv
+[29.976s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/ament_index/resource_index/packages/pcl_ros
+[29.976s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/export_pcl_rosExport.cmake
+[29.977s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/export_pcl_rosExport-release.cmake
+[29.977s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/ament_cmake_export_include_directories-extras.cmake
+[29.977s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/ament_cmake_export_libraries-extras.cmake
+[29.977s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/ament_cmake_export_dependencies-extras.cmake
+[29.977s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/ament_cmake_export_targets-extras.cmake
+[29.978s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/pcl_rosConfig.cmake
+[29.978s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake/pcl_rosConfig-version.cmake
+[29.978s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/package.xml
+[29.983s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/foxy /usr/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/pcl_ros

@@ -1,0 +1,28 @@
+{
+  "timestamp": "20251021_150620",
+  "map_size_meters": 20.0,
+  "map_resolution": 0.1,
+  "map_pixels": 200,
+  "accumulation_time": 30.0,
+  "total_points": 2151292,
+  "total_frames": 296,
+  "imu_samples": 6008,
+  "mount_orientation": "upside_down",
+  "height_filter": [
+    -2.0,
+    3.0
+  ],
+  "occupied_cells": 1839,
+  "height_range": [
+    -1.218000054359436,
+    0.8960000276565552
+  ],
+  "data_directory": "mapping_data/session_20251021_150550",
+  "files": {
+    "occupancy_map": "occupancy_map_20251021_150620.png",
+    "height_map": "height_map_20251021_150620.png",
+    "intensity_map": "intensity_map_20251021_150620.png",
+    "raw_data": "map_data_20251021_150620.npz",
+    "imu_csv": "mapping_data/session_20251021_150550/imu_data.csv"
+  }
+}

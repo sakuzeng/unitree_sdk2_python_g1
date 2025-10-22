@@ -1,0 +1,4 @@
+source;share/pcl_ros/local_setup.bash
+source;share/pcl_ros/local_setup.dsv
+source;share/pcl_ros/local_setup.sh
+source;share/pcl_ros/local_setup.zsh

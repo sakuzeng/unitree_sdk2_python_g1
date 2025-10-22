@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/build/livox_ros_driver2/liblivox_ros_driver2.so" "TARGETS" "livox_ros_driver2" "ARCHIVE_DESTINATION" "lib" "LIBRARY_DESTINATION" "lib" "RUNTIME_DESTINATION" "bin")

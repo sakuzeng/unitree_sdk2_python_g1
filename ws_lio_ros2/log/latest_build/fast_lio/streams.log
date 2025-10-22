@@ -1,0 +1,573 @@
+[0.021s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2 -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3.8 -DPYTHON_EXECUTABLE=/usr/bin/python3.8 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio
+[0.115s] -- The C compiler identification is GNU 9.4.0
+[0.199s] -- The CXX compiler identification is GNU 9.4.0
+[0.209s] -- Check for working C compiler: /usr/bin/cc
+[0.339s] -- Check for working C compiler: /usr/bin/cc -- works
+[0.341s] -- Detecting C compiler ABI info
+[0.472s] -- Detecting C compiler ABI info - done
+[0.487s] -- Detecting C compile features
+[0.488s] -- Detecting C compile features - done
+[0.491s] -- Check for working CXX compiler: /usr/bin/c++
+[0.627s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[0.629s] -- Detecting CXX compiler ABI info
+[0.766s] -- Detecting CXX compiler ABI info - done
+[0.791s] -- Detecting CXX compile features
+[0.792s] -- Detecting CXX compile features - done
+[0.793s] Current CPU archtecture: aarch64
+[1.439s] -- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.8.so (found version "3.8.10") 
+[1.442s] -- Found ament_cmake: 0.9.12 (/opt/ros/foxy/share/ament_cmake/cmake)
+[1.484s] -- Found PythonInterp: /usr/bin/python3.8 (found suitable version "3.8.10", minimum required is "3") 
+[1.484s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3.8
+[1.830s] -- Found rclcpp: 2.4.3 (/opt/ros/foxy/share/rclcpp/cmake)
+[1.891s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.902s] -- Found rosidl_adapter: 1.3.1 (/opt/ros/foxy/share/rosidl_adapter/cmake)
+[2.052s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[2.100s] -- Found FastRTPS: /opt/ros/foxy/include  
+[2.227s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.312s] -- Found rmw_implementation_cmake: 1.0.4 (/opt/ros/foxy/share/rmw_implementation_cmake/cmake)
+[2.314s] -- Using RMW implementation 'rmw_cyclonedds_cpp' as default
+[2.315s] -- Looking for pthread.h
+[2.447s] -- Looking for pthread.h - found
+[2.447s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[2.577s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[2.579s] -- Found Threads: TRUE  
+[2.808s] -- Found rclcpp_components: 2.4.3 (/opt/ros/foxy/share/rclcpp_components/cmake)
+[2.896s] -- Found geometry_msgs: 2.0.5 (/opt/ros/foxy/share/geometry_msgs/cmake)
+[2.946s] -- Found nav_msgs: 2.0.5 (/opt/ros/foxy/share/nav_msgs/cmake)
+[3.048s] -- Found sensor_msgs: 2.0.5 (/opt/ros/foxy/share/sensor_msgs/cmake)
+[3.151s] -- Found std_srvs: 2.0.5 (/opt/ros/foxy/share/std_srvs/cmake)
+[3.167s] -- Found visualization_msgs: 2.0.5 (/opt/ros/foxy/share/visualization_msgs/cmake)
+[3.269s] -- Found pcl_ros: 2.2.1 (/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/share/pcl_ros/cmake)
+[3.669s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/foxy/share/eigen3_cmake_module/cmake)
+[3.673s] -- Found Eigen3: TRUE (found version "3.3.7") 
+[4.185s] -- Checking for module 'eigen3'
+[4.220s] --   Found eigen3, version 3.4.0
+[4.309s] -- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") 
+[4.309s] -- Eigen found (include: /usr/include/eigen3, version: 3.3.7)
+[4.420s] -- Checking for module 'flann'
+[4.460s] --   Found flann, version 1.9.1
+[4.561s] -- Found FLANN: /usr/lib/aarch64-linux-gnu/libflann_cpp.so  
+[4.646s] -- The imported target "vtkParseOGLExt" references the file
+[4.646s]    "/usr/bin/vtkParseOGLExt-7.1"
+[4.646s] but this file does not exist.  Possible reasons include:
+[4.647s] * The file was deleted, renamed, or moved to another location.
+[4.647s] * An install or uninstall procedure did not complete successfully.
+[4.647s] * The installation package was faulty and contained
+[4.647s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[4.647s] but not all the files it references.
+[4.647s] 
+[4.647s] -- The imported target "vtkRenderingPythonTkWidgets" references the file
+[4.647s]    "/usr/lib/aarch64-linux-gnu/libvtkRenderingPythonTkWidgets.so"
+[4.648s] but this file does not exist.  Possible reasons include:
+[4.648s] * The file was deleted, renamed, or moved to another location.
+[4.648s] * An install or uninstall procedure did not complete successfully.
+[4.648s] * The installation package was faulty and contained
+[4.648s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[4.648s] but not all the files it references.
+[4.648s] 
+[4.649s] -- The imported target "vtk" references the file
+[4.649s]    "/usr/bin/vtk"
+[4.649s] but this file does not exist.  Possible reasons include:
+[4.649s] * The file was deleted, renamed, or moved to another location.
+[4.649s] * An install or uninstall procedure did not complete successfully.
+[4.649s] * The installation package was faulty and contained
+[4.649s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[4.649s] but not all the files it references.
+[4.649s] 
+[4.649s] -- The imported target "pvtk" references the file
+[4.649s]    "/usr/bin/pvtk"
+[4.650s] but this file does not exist.  Possible reasons include:
+[4.650s] * The file was deleted, renamed, or moved to another location.
+[4.650s] * An install or uninstall procedure did not complete successfully.
+[4.650s] * The installation package was faulty and contained
+[4.650s]    "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+[4.650s] but not all the files it references.
+[4.650s] 
+[4.681s] -- Checking for module 'libusb-1.0'
+[4.717s] --   Found libusb-1.0, version 1.0.23
+[4.800s] -- Found USB_10: /usr/lib/aarch64-linux-gnu/libusb-1.0.so  
+[4.920s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[5.057s] -- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+[5.079s] -- Found libusb-1.0: /usr/include  
+[5.091s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[5.103s] -- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+[5.149s] -- Found Qhull: optimized;/usr/lib/aarch64-linux-gnu/libqhull.so;debug;/usr/lib/aarch64-linux-gnu/libqhull.so  
+[5.149s] -- QHULL found (include: /usr/include, lib: optimized;/usr/lib/aarch64-linux-gnu/libqhull.so;debug;/usr/lib/aarch64-linux-gnu/libqhull.so)
+[5.161s] -- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+[5.182s] -- Found PCL_COMMON: /usr/lib/aarch64-linux-gnu/libpcl_common.so  
+[5.184s] -- Found PCL_KDTREE: /usr/lib/aarch64-linux-gnu/libpcl_kdtree.so  
+[5.186s] -- Found PCL_OCTREE: /usr/lib/aarch64-linux-gnu/libpcl_octree.so  
+[5.188s] -- Found PCL_SEARCH: /usr/lib/aarch64-linux-gnu/libpcl_search.so  
+[5.189s] -- Found PCL_SAMPLE_CONSENSUS: /usr/lib/aarch64-linux-gnu/libpcl_sample_consensus.so  
+[5.191s] -- Found PCL_FILTERS: /usr/lib/aarch64-linux-gnu/libpcl_filters.so  
+[5.192s] -- Found PCL_2D: /usr/include/pcl-1.10  
+[5.193s] -- Found PCL_GEOMETRY: /usr/include/pcl-1.10  
+[5.195s] -- Found PCL_IO: /usr/lib/aarch64-linux-gnu/libpcl_io.so  
+[5.197s] -- Found PCL_FEATURES: /usr/lib/aarch64-linux-gnu/libpcl_features.so  
+[5.199s] -- Found PCL_ML: /usr/lib/aarch64-linux-gnu/libpcl_ml.so  
+[5.201s] -- Found PCL_SEGMENTATION: /usr/lib/aarch64-linux-gnu/libpcl_segmentation.so  
+[5.203s] -- Found PCL_VISUALIZATION: /usr/lib/aarch64-linux-gnu/libpcl_visualization.so  
+[5.205s] -- Found PCL_SURFACE: /usr/lib/aarch64-linux-gnu/libpcl_surface.so  
+[5.207s] -- Found PCL_REGISTRATION: /usr/lib/aarch64-linux-gnu/libpcl_registration.so  
+[5.209s] -- Found PCL_KEYPOINTS: /usr/lib/aarch64-linux-gnu/libpcl_keypoints.so  
+[5.211s] -- Found PCL_TRACKING: /usr/lib/aarch64-linux-gnu/libpcl_tracking.so  
+[5.213s] -- Found PCL_RECOGNITION: /usr/lib/aarch64-linux-gnu/libpcl_recognition.so  
+[5.215s] -- Found PCL_STEREO: /usr/lib/aarch64-linux-gnu/libpcl_stereo.so  
+[5.217s] -- Found PCL_APPS: /usr/lib/aarch64-linux-gnu/libpcl_apps.so  
+[5.219s] -- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.10  
+[5.220s] -- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.10  
+[5.222s] -- Found PCL_OUTOFCORE: /usr/lib/aarch64-linux-gnu/libpcl_outofcore.so  
+[5.224s] -- Found PCL_PEOPLE: /usr/lib/aarch64-linux-gnu/libpcl_people.so  
+[5.560s] -- Found livox_ros_driver2: 1.0.0 (/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/share/livox_ros_driver2/cmake)
+[5.734s] -- Found rosidl_default_generators: 1.0.1 (/opt/ros/foxy/share/rosidl_default_generators/cmake)
+[5.753s] CMake Warning (dev) at CMakeLists.txt:81 (find_package):
+[5.753s]   Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+[5.753s]   Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+[5.753s]   command to set the policy and suppress this warning.
+[5.753s] 
+[5.753s]   CMake variable PCL_ROOT is set to:
+[5.753s] 
+[5.753s]     /usr
+[5.754s] 
+[5.754s]   For compatibility, CMake is ignoring the variable.
+[5.754s] This warning is for project developers.  Use -Wno-dev to suppress it.
+[5.754s] 
+[5.764s] Eigen:/usr/include/eigen3
+[5.764s] -- PCL: /usr/include/pcl-1.10
+[5.801s] -- Found PythonInterp: /usr/bin/python3.8 (found version "3.8.10") 
+[6.031s] -- Found ament_cmake_ros: 0.9.2 (/opt/ros/foxy/share/ament_cmake_ros/cmake)
+[6.257s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[6.270s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[6.320s] -- Found PythonInterp: /usr/bin/python3.8 (found suitable version "3.8.10", minimum required is "3.5") 
+[6.322s] -- Found python_cmake_module: 0.8.1 (/opt/ros/foxy/share/python_cmake_module/cmake)
+[6.365s] -- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.8.so (found suitable version "3.8.10", minimum required is "3.5") 
+[6.365s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3.8
+[6.365s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.8
+[6.365s] -- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.8.so
+[6.403s] -- Found PythonExtra: .so  
+[6.554s] -- Configuring done
+[6.706s] -- Generating done
+[6.711s] CMake Warning:
+[6.711s]   Manually-specified variables were not used by the project:
+[6.711s] 
+[6.711s]     Python3_EXECUTABLE
+[6.711s] 
+[6.712s] 
+[6.713s] -- Build files have been written to: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio
+[6.760s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio' returned '0': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2 -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3.8 -DPYTHON_EXECUTABLE=/usr/bin/python3.8 -DCMAKE_INSTALL_PREFIX=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio
+[6.765s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio -- -j8 -l8
+[6.854s] [  2%] [34m[1mGenerating C code for ROS interfaces[0m
+[6.855s] [35m[1mScanning dependencies of target fast_lio__cpp[0m
+[6.878s] [  5%] [34m[1mGenerating C++ code for ROS interfaces[0m
+[7.338s] [35m[1mScanning dependencies of target fast_lio__rosidl_generator_c[0m
+[7.363s] [  8%] [32mBuilding C object CMakeFiles/fast_lio__rosidl_generator_c.dir/rosidl_generator_c/fast_lio/msg/detail/pose6_d__functions.c.o[0m
+[7.392s] [  8%] Built target fast_lio__cpp
+[7.412s] [ 14%] [34m[1mGenerating C++ introspection for ROS interfaces[0m
+[7.412s] [ 14%] [34m[1mGenerating C++ type support dispatch for ROS interfaces[0m
+[7.414s] [ 17%] [34m[1mGenerating C++ type support for eProsima Fast-RTPS[0m
+[7.549s] [ 20%] [32m[1mLinking C shared library libfast_lio__rosidl_generator_c.so[0m
+[7.616s] [ 20%] Built target fast_lio__rosidl_generator_c
+[7.639s] [ 25%] [34m[1mGenerating C introspection for ROS interfaces[0m
+[7.639s] [ 25%] [34m[1mGenerating C type support dispatch for ROS interfaces[0m
+[7.860s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_cpp[0m
+[7.890s] [ 28%] [32mBuilding CXX object CMakeFiles/fast_lio__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/fast_lio/msg/pose6_d__type_support.cpp.o[0m
+[7.908s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_fastrtps_cpp[0m
+[7.946s] [ 31%] [32mBuilding CXX object CMakeFiles/fast_lio__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/fast_lio/msg/detail/dds_fastrtps/pose6_d__type_support.cpp.o[0m
+[8.003s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_introspection_cpp[0m
+[8.033s] [ 34%] [32mBuilding CXX object CMakeFiles/fast_lio__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/fast_lio/msg/detail/pose6_d__type_support.cpp.o[0m
+[8.112s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_c[0m
+[8.141s] [ 37%] [32mBuilding CXX object CMakeFiles/fast_lio__rosidl_typesupport_c.dir/rosidl_typesupport_c/fast_lio/msg/pose6_d__type_support.cpp.o[0m
+[8.142s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_introspection_c[0m
+[8.194s] [ 40%] [32mBuilding C object CMakeFiles/fast_lio__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/fast_lio/msg/detail/pose6_d__type_support.c.o[0m
+[8.232s] [ 42%] [32m[1mLinking CXX shared library libfast_lio__rosidl_typesupport_c.so[0m
+[8.269s] [ 45%] [32m[1mLinking C shared library libfast_lio__rosidl_typesupport_introspection_c.so[0m
+[8.314s] [ 45%] Built target fast_lio__rosidl_typesupport_c
+[8.333s] [ 45%] Built target fast_lio__rosidl_typesupport_introspection_c
+[8.442s] [ 48%] [32m[1mLinking CXX shared library libfast_lio__rosidl_typesupport_cpp.so[0m
+[8.512s] [ 48%] Built target fast_lio__rosidl_typesupport_cpp
+[8.626s] [ 51%] [32m[1mLinking CXX shared library libfast_lio__rosidl_typesupport_introspection_cpp.so[0m
+[8.694s] [ 51%] Built target fast_lio__rosidl_typesupport_introspection_cpp
+[8.756s] [ 54%] [32m[1mLinking CXX shared library libfast_lio__rosidl_typesupport_fastrtps_cpp.so[0m
+[8.914s] [ 54%] Built target fast_lio__rosidl_typesupport_fastrtps_cpp
+[8.937s] [ 57%] [34m[1mGenerating C type support for eProsima Fast-RTPS[0m
+[9.389s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_fastrtps_c[0m
+[9.416s] [ 60%] [32mBuilding CXX object CMakeFiles/fast_lio__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/fast_lio/msg/detail/pose6_d__type_support_c.cpp.o[0m
+[10.048s] [ 62%] [32m[1mLinking CXX shared library libfast_lio__rosidl_typesupport_fastrtps_c.so[0m
+[10.209s] [ 62%] Built target fast_lio__rosidl_typesupport_fastrtps_c
+[10.229s] [35m[1mScanning dependencies of target fast_lio[0m
+[10.251s] [ 62%] Built target fast_lio
+[10.270s] [35m[1mScanning dependencies of target fast_lio__py[0m
+[10.270s] [35m[1mScanning dependencies of target fastlio_mapping[0m
+[10.292s] [ 65%] [34m[1mGenerating Python code for ROS interfaces[0m
+[10.474s] [ 68%] [32mBuilding CXX object CMakeFiles/fastlio_mapping.dir/include/ikd-Tree/ikd_Tree.cpp.o[0m
+[10.475s] [ 71%] [32mBuilding CXX object CMakeFiles/fastlio_mapping.dir/src/preprocess.cpp.o[0m
+[10.486s] [ 74%] [32mBuilding CXX object CMakeFiles/fastlio_mapping.dir/src/laserMapping.cpp.o[0m
+[11.149s] [ 74%] Built target fast_lio__py
+[11.171s] [35m[1mScanning dependencies of target fast_lio__python[0m
+[11.223s] [ 77%] [32mBuilding C object CMakeFiles/fast_lio__python.dir/rosidl_generator_py/fast_lio/msg/_pose6_d_s.c.o[0m
+[11.523s] [ 80%] [32m[1mLinking C shared library rosidl_generator_py/fast_lio/libfast_lio__python.so[0m
+[11.595s] [ 80%] Built target fast_lio__python
+[11.619s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_fastrtps_c__pyext[0m
+[11.619s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_introspection_c__pyext[0m
+[11.625s] [35m[1mScanning dependencies of target fast_lio__rosidl_typesupport_c__pyext[0m
+[11.685s] [ 82%] [32mBuilding C object CMakeFiles/fast_lio__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/fast_lio/_fast_lio_s.ep.rosidl_typesupport_fastrtps_c.c.o[0m
+[11.714s] [ 85%] [32mBuilding C object CMakeFiles/fast_lio__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/fast_lio/_fast_lio_s.ep.rosidl_typesupport_introspection_c.c.o[0m
+[11.714s] [ 88%] [32mBuilding C object CMakeFiles/fast_lio__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/fast_lio/_fast_lio_s.ep.rosidl_typesupport_c.c.o[0m
+[11.920s] [ 91%] [32m[1mLinking C shared library rosidl_generator_py/fast_lio/fast_lio_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so[0m
+[11.943s] [ 94%] [32m[1mLinking CXX shared library rosidl_generator_py/fast_lio/fast_lio_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so[0m
+[11.958s] [ 97%] [32m[1mLinking C shared library rosidl_generator_py/fast_lio/fast_lio_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so[0m
+[12.000s] [ 97%] Built target fast_lio__rosidl_typesupport_c__pyext
+[12.044s] [ 97%] Built target fast_lio__rosidl_typesupport_introspection_c__pyext
+[12.066s] [ 97%] Built target fast_lio__rosidl_typesupport_fastrtps_c__pyext
+[20.363s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[20.364s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[20.364s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[20.364s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[20.364s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[20.364s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[20.364s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[20.364s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_cloud.h:50[m[K,
+[20.364s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:49[m[K,
+[20.364s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.364s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.365s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.365s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:83:105:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint16_t = uint16_t[m[K’ is deprecated: use std::uint16_t instead of pcl::uint16_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[20.365s]    83 |                                                                           intensity)(float, time, time)([01;35m[Kuint16_t[m[K, ring,
+[20.365s]       |                                                                                                         [01;35m[K^~~~~~~~[m[K
+[20.365s] In file included from [01m[K/usr/include/pcl-1.10/pcl/PCLPointField.h:10[m[K,
+[20.365s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:46[m[K,
+[20.365s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.365s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.365s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.365s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:94:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[20.366s]    94 |   using [01;36m[Kuint16_t[m[K [[deprecated("use std::uint16_t instead of pcl::uint16_t")]] = std::uint16_t;
+[20.366s]       |         [01;36m[K^~~~~~~~[m[K
+[20.391s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[20.391s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[20.391s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[20.392s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[20.392s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[20.392s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[20.392s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[20.392s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_cloud.h:50[m[K,
+[20.392s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:49[m[K,
+[20.392s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.392s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.392s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.392s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:140:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[20.393s]   140 |     ([01;35m[Kuint8_t[m[K, tag, tag)
+[20.393s]       |      [01;35m[K^~~~~~~[m[K
+[20.393s] In file included from [01m[K/usr/include/pcl-1.10/pcl/PCLPointField.h:10[m[K,
+[20.393s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:46[m[K,
+[20.393s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.393s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.393s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.393s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[20.393s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[20.393s]       |         [01;36m[K^~~~~~~[m[K
+[20.393s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[20.394s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[20.394s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[20.394s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[20.394s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[20.394s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[20.394s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[20.394s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_cloud.h:50[m[K,
+[20.394s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:49[m[K,
+[20.394s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.394s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.394s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.395s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:141:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[20.395s]   141 |     ([01;35m[Kuint8_t[m[K, line, line)
+[20.395s]       |      [01;35m[K^~~~~~~[m[K
+[20.395s] In file included from [01m[K/usr/include/pcl-1.10/pcl/PCLPointField.h:10[m[K,
+[20.395s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:46[m[K,
+[20.395s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.395s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.395s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.395s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[20.395s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[20.396s]       |         [01;36m[K^~~~~~~[m[K
+[20.402s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[20.402s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[20.402s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[20.402s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[20.402s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[20.403s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[20.403s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[20.403s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_cloud.h:50[m[K,
+[20.403s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:49[m[K,
+[20.403s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.403s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.403s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.403s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:149:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[20.403s]   149 |     ([01;35m[Kuint8_t[m[K, tag, tag)
+[20.403s]       |      [01;35m[K^~~~~~~[m[K
+[20.403s] In file included from [01m[K/usr/include/pcl-1.10/pcl/PCLPointField.h:10[m[K,
+[20.404s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:46[m[K,
+[20.404s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.404s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.404s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.404s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[20.404s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[20.404s]       |         [01;36m[K^~~~~~~[m[K
+[20.404s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[20.404s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[20.404s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[20.404s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[20.404s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[20.405s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[20.405s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[20.405s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_cloud.h:50[m[K,
+[20.405s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:49[m[K,
+[20.405s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.405s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.405s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.405s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:150:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[20.405s]   150 |     ([01;35m[Kuint8_t[m[K, line, line)
+[20.405s]       |      [01;35m[K^~~~~~~[m[K
+[20.406s] In file included from [01m[K/usr/include/pcl-1.10/pcl/PCLPointField.h:10[m[K,
+[20.406s]                  from [01m[K/usr/include/pcl-1.10/pcl/conversions.h:46[m[K,
+[20.406s]                  from [01m[K/opt/ros/foxy/include/pcl_conversions/pcl_conversions.h:46[m[K,
+[20.406s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:3[m[K,
+[20.406s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.cpp:1[m[K:
+[20.406s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[20.406s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[20.406s]       |         [01;36m[K^~~~~~~[m[K
+[24.818s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[24.818s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[24.819s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[24.819s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[24.819s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[24.819s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[24.819s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[24.819s]                  from [01m[K/usr/include/pcl-1.10/pcl/register_point_struct.h:56[m[K,
+[24.819s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:44[m[K,
+[24.819s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.819s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.819s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.819s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:83:105:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint16_t = uint16_t[m[K’ is deprecated: use std::uint16_t instead of pcl::uint16_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[24.820s]    83 |                                                                           intensity)(float, time, time)([01;35m[Kuint16_t[m[K, ring,
+[24.820s]       |                                                                                                         [01;35m[K^~~~~~~~[m[K
+[24.820s] In file included from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:42[m[K,
+[24.820s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.820s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.820s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.820s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:94:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[24.820s]    94 |   using [01;36m[Kuint16_t[m[K [[deprecated("use std::uint16_t instead of pcl::uint16_t")]] = std::uint16_t;
+[24.820s]       |         [01;36m[K^~~~~~~~[m[K
+[24.847s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[24.848s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[24.848s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[24.848s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[24.848s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[24.848s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[24.848s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[24.848s]                  from [01m[K/usr/include/pcl-1.10/pcl/register_point_struct.h:56[m[K,
+[24.848s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:44[m[K,
+[24.848s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.848s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.849s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.849s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:140:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[24.849s]   140 |     ([01;35m[Kuint8_t[m[K, tag, tag)
+[24.849s]       |      [01;35m[K^~~~~~~[m[K
+[24.849s] In file included from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:42[m[K,
+[24.849s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.849s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.849s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.849s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[24.849s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[24.849s]       |         [01;36m[K^~~~~~~[m[K
+[24.850s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[24.850s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[24.850s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[24.850s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[24.850s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[24.850s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[24.850s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[24.850s]                  from [01m[K/usr/include/pcl-1.10/pcl/register_point_struct.h:56[m[K,
+[24.850s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:44[m[K,
+[24.850s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.850s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.851s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.851s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:141:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[24.851s]   141 |     ([01;35m[Kuint8_t[m[K, line, line)
+[24.851s]       |      [01;35m[K^~~~~~~[m[K
+[24.851s] In file included from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:42[m[K,
+[24.851s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.851s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.851s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.851s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[24.851s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[24.851s]       |         [01;36m[K^~~~~~~[m[K
+[24.858s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[24.858s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[24.859s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[24.859s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[24.859s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[24.859s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[24.859s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[24.859s]                  from [01m[K/usr/include/pcl-1.10/pcl/register_point_struct.h:56[m[K,
+[24.859s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:44[m[K,
+[24.859s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.859s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.859s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.859s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:149:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[24.860s]   149 |     ([01;35m[Kuint8_t[m[K, tag, tag)
+[24.860s]       |      [01;35m[K^~~~~~~[m[K
+[24.860s] In file included from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:42[m[K,
+[24.860s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.860s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.860s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.860s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[24.860s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[24.861s]       |         [01;36m[K^~~~~~~[m[K
+[24.861s] In file included from [01m[K/usr/include/boost/preprocessor/tuple/elem.hpp:23[m[K,
+[24.861s]                  from [01m[K/usr/include/boost/preprocessor/arithmetic/add.hpp:21[m[K,
+[24.861s]                  from [01m[K/usr/include/boost/mpl/aux_/preprocessor/def_params_tail.hpp:66[m[K,
+[24.861s]                  from [01m[K/usr/include/boost/mpl/aux_/na_spec.hpp:28[m[K,
+[24.861s]                  from [01m[K/usr/include/boost/mpl/not.hpp:20[m[K,
+[24.861s]                  from [01m[K/usr/include/boost/mpl/assert.hpp:17[m[K,
+[24.861s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_traits.h:48[m[K,
+[24.861s]                  from [01m[K/usr/include/pcl-1.10/pcl/register_point_struct.h:56[m[K,
+[24.861s]                  from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:44[m[K,
+[24.861s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.862s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.862s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.862s] [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/preprocess.h:150:6:[m[K [01;35m[Kwarning: [m[K‘[01m[Kusing uint8_t = uint8_t[m[K’ is deprecated: use std::uint8_t instead of pcl::uint8_t [[01;35m[K-Wdeprecated-declarations[m[K]
+[24.862s]   150 |     ([01;35m[Kuint8_t[m[K, line, line)
+[24.862s]       |      [01;35m[K^~~~~~~[m[K
+[24.862s] In file included from [01m[K/usr/include/pcl-1.10/pcl/point_types.h:42[m[K,
+[24.862s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/include/common_lib.h:6[m[K,
+[24.862s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/IMU_Processing.hpp:10[m[K,
+[24.862s]                  from [01m[K/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/src/FAST_LIO_ROS2/src/laserMapping.cpp:47[m[K:
+[24.862s] [01m[K/usr/include/pcl-1.10/pcl/pcl_macros.h:92:9:[m[K [01;36m[Knote: [m[Kdeclared here
+[24.862s]    92 |   using [01;36m[Kuint8_t[m[K [[deprecated("use std::uint8_t instead of pcl::uint8_t")]] = std::uint8_t;
+[24.863s]       |         [01;36m[K^~~~~~~[m[K
+[116.758s] [100%] [32m[1mLinking CXX executable fastlio_mapping[0m
+[119.865s] [100%] Built target fastlio_mapping
+[119.896s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio' returned '0': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake --build /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio -- -j8 -l8
+[119.999s] Invoking command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio
+[120.024s] -- Install configuration: "Release"
+[120.024s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/ament_index/resource_index/rosidl_interfaces/fast_lio
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/rosidl_generator_c__visibility_control.h
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/pose6_d.h
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__functions.h
+[120.026s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__struct.h
+[120.027s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__type_support.h
+[120.027s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__functions.c
+[120.027s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/library_path.sh
+[120.027s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/library_path.dsv
+[120.027s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_generator_c.so
+[120.029s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_generator_c.so" to ""
+[120.029s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.029s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.029s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+[120.029s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.029s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__rosidl_typesupport_fastrtps_c.h
+[120.030s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_fastrtps_c.so
+[120.031s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_fastrtps_c.so" to ""
+[120.032s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.032s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.032s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+[120.032s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.033s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__rosidl_typesupport_fastrtps_cpp.hpp
+[120.033s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/dds_fastrtps
+[120.033s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_fastrtps_cpp.so
+[120.033s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_fastrtps_cpp.so" to ""
+[120.034s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.034s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.034s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/rosidl_typesupport_introspection_c__visibility_control.h
+[120.034s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.034s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__rosidl_typesupport_introspection_c.h
+[120.034s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__type_support.c
+[120.034s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_introspection_c.so
+[120.036s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_introspection_c.so" to ""
+[120.036s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_c.so
+[120.037s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_c.so" to ""
+[120.038s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.039s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.039s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__struct.hpp
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__type_support.hpp
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__builder.hpp
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__traits.hpp
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/rosidl_generator_cpp__visibility_control.hpp
+[120.040s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/pose6_d.hpp
+[120.040s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio
+[120.040s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg
+[120.040s] -- Up-to-date: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail
+[120.041s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__rosidl_typesupport_introspection_cpp.hpp
+[120.041s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/include/fast_lio/msg/detail/pose6_d__type_support.cpp
+[120.041s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_introspection_cpp.so
+[120.042s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_introspection_cpp.so" to ""
+[120.042s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_cpp.so
+[120.043s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__rosidl_typesupport_cpp.so" to ""
+[120.043s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/pythonpath.sh
+[120.043s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/pythonpath.dsv
+[120.043s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/__init__.py
+[120.098s] Compiling '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/__init__.py'...
+[120.109s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/msg
+[120.109s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/msg/_pose6_d.py
+[120.110s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/msg/_pose6_d_s.c
+[120.110s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/msg/__init__.py
+[120.110s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so
+[120.111s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_fastrtps_c.cpython-38-aarch64-linux-gnu.so" to ""
+[120.111s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so
+[120.111s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_introspection_c.cpython-38-aarch64-linux-gnu.so" to ""
+[120.112s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so
+[120.112s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/python3.8/site-packages/fast_lio/fast_lio_s__rosidl_typesupport_c.cpython-38-aarch64-linux-gnu.so" to ""
+[120.113s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__python.so
+[120.114s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/libfast_lio__python.so" to ""
+[120.114s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/msg/Pose6D.idl
+[120.114s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/msg/Pose6D.msg
+[120.118s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/fast_lio/fastlio_mapping
+[120.118s] -- Set runtime path of "/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/lib/fast_lio/fastlio_mapping" to ""
+[120.118s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config
+[120.119s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config/ouster64.yaml
+[120.119s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config/mid360.yaml
+[120.119s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config/avia.yaml
+[120.120s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config/velodyne.yaml
+[120.120s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/config/horizon.yaml
+[120.121s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/launch
+[120.121s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/launch/mapping.launch.py
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/launch/gdb_debug_example.launch
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/rviz
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/rviz/fastlio.rviz
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/ament_index/resource_index/package_run_dependencies/fast_lio
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/ament_index/resource_index/parent_prefix_path/fast_lio
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/ament_prefix_path.sh
+[120.122s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/ament_prefix_path.dsv
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/path.sh
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/environment/path.dsv
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/local_setup.bash
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/local_setup.sh
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/local_setup.zsh
+[120.123s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/local_setup.dsv
+[120.124s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/package.dsv
+[120.124s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/ament_index/resource_index/packages/fast_lio
+[120.124s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_generator_cExport.cmake
+[120.124s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_generator_cExport-release.cmake
+[120.125s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_introspection_cExport.cmake
+[120.125s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_introspection_cExport-release.cmake
+[120.126s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_cExport.cmake
+[120.126s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_cExport-release.cmake
+[120.126s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_generator_cppExport.cmake
+[120.127s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_introspection_cppExport.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_introspection_cppExport-release.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_cppExport.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lio__rosidl_typesupport_cppExport-release.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/rosidl_cmake-extras.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/ament_cmake_export_dependencies-extras.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/ament_cmake_export_libraries-extras.cmake
+[120.128s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/ament_cmake_export_targets-extras.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/ament_cmake_export_include_directories-extras.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lioConfig.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/cmake/fast_lioConfig-version.cmake
+[120.129s] -- Installing: /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/fast_lio/share/fast_lio/package.xml
+[120.153s] Invoked command in '/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio' returned '0': AMENT_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp:/home/unitree/cyclonedds_ws/install/cyclonedds:/opt/ros/foxy LD_LIBRARY_PATH=/home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/pcl_ros/lib:/home/unitree/projects/unitree_sdk2_python_g1/ws_livox/install/livox_ros_driver2/lib:/usr/local/cuda-11.4/lib64:/usr/local/lib:/home/unitree/cyclonedds_ws/install/rmw_cyclonedds_cpp/lib:/home/unitree/cyclonedds_ws/install/cyclonedds/lib:/opt/ros/foxy/opt/yaml_cpp_vendor/lib:/opt/ros/foxy/opt/rviz_ogre_vendor/lib:/opt/ros/foxy/lib/aarch64-linux-gnu:/opt/ros/foxy/lib:/usr/local/cuda-11.4/lib64 /usr/bin/cmake --install /home/unitree/projects/unitree_sdk2_python_g1/ws_lio_ros2/build/fast_lio
