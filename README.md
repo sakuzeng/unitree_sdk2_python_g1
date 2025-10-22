@@ -63,3 +63,14 @@
 - g1_loco_client_example.py:g1使用rpc来进行控制示例
 
 
+
+## fast_lio_ros2运行
+Terminal_A(ws_livox):
+source install/setup.bash
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+
+Terminal_B(ws_lio_ros2)
+source /opt/ros/foxy/setup.bash
+source ~/projects/unitree_sdk2_python_g1/ws_livox/install/setup.bash
+source ~/projects/unitree_sdk2_python_g1/ws_lio_ros2/install/setup.bash
+ros2 launch fast_lio mapping.launch.py
